@@ -232,4 +232,4 @@ function doFetchPush () {
 // setInterval is better than recursive setTimeout as it calls function every given time interval comparing to latter one which calls again after last function finishes.
 setInterval(() => {
   doFetchPush()
-}, 30001)
+}, 300001)
