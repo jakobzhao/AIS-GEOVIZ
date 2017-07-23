@@ -99,7 +99,7 @@ function processAisData (jsonData) {
   const aisRecordColumn = new pgp.helpers.ColumnSet([
     '_id',
     'mmsi',
-    'timestamp',
+    'report_time',
     'longlat',
     'cog',
     'sog',
@@ -128,7 +128,7 @@ function processAisData (jsonData) {
     let aisRecord = {
       _id: hash.update((record.MMSI.toString() + '-' + record.TIME).toString()).digest('hex'),
       mmsi: record.MMSI,
-      timestamp: new Date(record.TIME.replace(/(\sGMT)/, 'Z').replace(/\s/, 'T')),
+      report_time: new Date(record.TIME.replace(/(\sGMT)/, 'Z').replace(/\s/, 'T')),
       longlat: '(' + record.LONGITUDE + ',' + record.LATITUDE + ')',
       cog: record.COG,
       sog: record.SOG,
@@ -189,8 +189,8 @@ function sendEmail (errMsg) {
 
 // setup email data with unicode symbols
   let mailOptions = {
-    from: '"Likun\'s GeoLinode Server" <postmaster@mail.geotricks.net>',
-    to: 'eiclkun@gmail.com, chenli@oregonstate.edu', // list of receivers
+    from: '"AIS Fetcher" <postmaster@mail.geotricks.net>',
+    to: credential.emailAddress1, // list of receivers
     subject: 'AIS-Fetcher Failed', // Subject line
     text: 'something is not right \n?' +
     errMsg.toString()
@@ -230,6 +230,7 @@ function doFetchPush () {
 
 // run script every five minutes
 // setInterval is better than recursive setTimeout as it calls function every given time interval comparing to latter one which calls again after last function finishes.
+doFetchPush()
 setInterval(() => {
   doFetchPush()
 }, 300001)

@@ -5,7 +5,7 @@
 -- Dumped from database version 9.6.3
 -- Dumped by pg_dump version 9.6.3
 
--- Started on 2017-07-22 16:01:26
+-- Started on 2017-07-22 20:47:23
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -15,6 +15,23 @@ SET standard_conforming_strings = on;
 SET check_function_bodies = false;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- TOC entry 1 (class 3079 OID 12393)
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner:
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- TOC entry 2146 (class 0 OID 0)
+-- Dependencies: 1
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner:
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
 
 SET search_path = public, pg_catalog;
 
@@ -30,7 +47,7 @@ SET default_with_oids = false;
 CREATE TABLE ais_record (
     _id character varying(64) NOT NULL,
     mmsi integer NOT NULL,
-    "timestamp" timestamp with time zone NOT NULL,
+    report_time timestamp with time zone NOT NULL,
     longlat point NOT NULL,
     cog numeric(4,1),
     sog numeric(4,1),
@@ -109,7 +126,31 @@ ALTER TABLE ONLY vessel
 
 
 --
--- TOC entry 2141 (class 0 OID 0)
+-- TOC entry 2019 (class 1259 OID 24686)
+-- Name: idx_mmsi; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_mmsi ON ais_record USING btree (mmsi);
+
+
+--
+-- TOC entry 2020 (class 1259 OID 24683)
+-- Name: idx_timestamp; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_timestamp ON ais_record USING btree (report_time);
+
+
+--
+-- TOC entry 2021 (class 1259 OID 24684)
+-- Name: idx_timestamp2; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_timestamp2 ON ais_record USING btree (report_time, mmsi);
+
+
+--
+-- TOC entry 2145 (class 0 OID 0)
 -- Dependencies: 3
 -- Name: public; Type: ACL; Schema: -; Owner: postgres
 --
@@ -120,7 +161,7 @@ GRANT USAGE ON SCHEMA public TO ais_uploader;
 
 
 --
--- TOC entry 2142 (class 0 OID 0)
+-- TOC entry 2147 (class 0 OID 0)
 -- Dependencies: 187
 -- Name: ais_record; Type: ACL; Schema: public; Owner: postgres
 --
@@ -130,7 +171,7 @@ GRANT SELECT ON TABLE ais_record TO "geoViz_viewer";
 
 
 --
--- TOC entry 2143 (class 0 OID 0)
+-- TOC entry 2148 (class 0 OID 0)
 -- Dependencies: 185
 -- Name: upload_status; Type: ACL; Schema: public; Owner: postgres
 --
@@ -140,7 +181,7 @@ GRANT SELECT ON TABLE upload_status TO "geoViz_viewer";
 
 
 --
--- TOC entry 2144 (class 0 OID 0)
+-- TOC entry 2149 (class 0 OID 0)
 -- Dependencies: 186
 -- Name: vessel; Type: ACL; Schema: public; Owner: postgres
 --
@@ -159,7 +200,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT,INSERT,
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT ON TABLES  TO "geoViz_viewer";
 
 
--- Completed on 2017-07-22 16:01:32
+-- Completed on 2017-07-22 20:47:31
 
 --
 -- PostgreSQL database dump complete
