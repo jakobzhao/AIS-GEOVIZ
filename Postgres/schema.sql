@@ -5,7 +5,7 @@
 -- Dumped from database version 9.6.3
 -- Dumped by pg_dump version 9.6.3
 
--- Started on 2017-07-22 20:47:23
+-- Started on 2017-07-23 00:39:50
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -25,7 +25,7 @@ CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 
 
 --
--- TOC entry 2146 (class 0 OID 0)
+-- TOC entry 2144 (class 0 OID 0)
 -- Dependencies: 1
 -- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner:
 --
@@ -126,31 +126,15 @@ ALTER TABLE ONLY vessel
 
 
 --
--- TOC entry 2019 (class 1259 OID 24686)
--- Name: idx_mmsi; Type: INDEX; Schema: public; Owner: postgres
+-- TOC entry 2019 (class 1259 OID 24697)
+-- Name: report_time_mmsi_idx; Type: INDEX; Schema: public; Owner: postgres
 --
 
-CREATE INDEX idx_mmsi ON ais_record USING btree (mmsi);
-
-
---
--- TOC entry 2020 (class 1259 OID 24683)
--- Name: idx_timestamp; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_timestamp ON ais_record USING btree (report_time);
+CREATE INDEX report_time_mmsi_idx ON ais_record USING btree (report_time, mmsi);
 
 
 --
--- TOC entry 2021 (class 1259 OID 24684)
--- Name: idx_timestamp2; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_timestamp2 ON ais_record USING btree (report_time, mmsi);
-
-
---
--- TOC entry 2145 (class 0 OID 0)
+-- TOC entry 2143 (class 0 OID 0)
 -- Dependencies: 3
 -- Name: public; Type: ACL; Schema: -; Owner: postgres
 --
@@ -161,7 +145,7 @@ GRANT USAGE ON SCHEMA public TO ais_uploader;
 
 
 --
--- TOC entry 2147 (class 0 OID 0)
+-- TOC entry 2145 (class 0 OID 0)
 -- Dependencies: 187
 -- Name: ais_record; Type: ACL; Schema: public; Owner: postgres
 --
@@ -171,7 +155,7 @@ GRANT SELECT ON TABLE ais_record TO "geoViz_viewer";
 
 
 --
--- TOC entry 2148 (class 0 OID 0)
+-- TOC entry 2146 (class 0 OID 0)
 -- Dependencies: 185
 -- Name: upload_status; Type: ACL; Schema: public; Owner: postgres
 --
@@ -181,7 +165,7 @@ GRANT SELECT ON TABLE upload_status TO "geoViz_viewer";
 
 
 --
--- TOC entry 2149 (class 0 OID 0)
+-- TOC entry 2147 (class 0 OID 0)
 -- Dependencies: 186
 -- Name: vessel; Type: ACL; Schema: public; Owner: postgres
 --
@@ -200,7 +184,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT,INSERT,
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT SELECT ON TABLES  TO "geoViz_viewer";
 
 
--- Completed on 2017-07-22 20:47:31
+-- Completed on 2017-07-23 00:39:56
 
 --
 -- PostgreSQL database dump complete
