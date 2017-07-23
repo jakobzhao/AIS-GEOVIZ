@@ -228,8 +228,8 @@ function doFetchPush () {
     })
 }
 
-// run script every five minutes
+// run script every 30 minutes, really have no time to deal with million-row-data issue
 // setInterval is better than recursive setTimeout as it calls function every given time interval comparing to latter one which calls again after last function finishes.
 setInterval(() => {
   doFetchPush()
-}, 300001)
+}, 1.8e+6)
