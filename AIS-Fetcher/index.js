@@ -27,7 +27,7 @@ function retry (fn, delay, maxTries) {
       throw reason
     }
     console.log('retry No.' + (maxTries - 1).toString())
-    return Promise.delay(delay).then(retry.bind(null, fn, delay, maxTries - 1))
+    return Promise.delay(delay).then(retry.bind(null, fn, Math.min(9e+5, (delay * 2)), maxTries - 1))
   })
 }
 
@@ -208,7 +208,7 @@ function sendEmail (errMsg) {
 function doFetchPush () {
   let hrstart = process.hrtime()
   // api has a access limit of 1min/request
-  retry(getAisData, 60001, 1)
+  retry(getAisData, 60001, 5)
     .then(result => {
       return processAisData(result)
     })
