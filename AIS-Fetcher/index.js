@@ -27,7 +27,7 @@ function retry (fn, delay, maxTries) {
       throw reason
     }
     console.log('retry No.' + (maxTries - 1).toString())
-    return Promise.delay(delay).then(retry.bind(null, fn, Math.min(9e+5, (delay * 2)), maxTries - 1))
+    return Promise.delay(delay).then(retry.bind(null, fn, Math.min(5e+5, (delay * 2)), maxTries - 1))
   })
 }
 
@@ -228,6 +228,9 @@ function doFetchPush () {
     })
 }
 
+setTimeout(() => {
+  doFetchPush()
+}, 120000)
 // run script every 30 minutes, really have no time to deal with million-row-data issue
 // setInterval is better than recursive setTimeout as it calls function every given time interval comparing to latter one which calls again after last function finishes.
 setInterval(() => {
