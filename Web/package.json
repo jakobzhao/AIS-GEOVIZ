@@ -1,0 +1,22 @@
+{
+  "name": "ais-web",
+  "version": "0.0.1",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Likun CHEN",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.16.2",
+    "bluebird": "^3.5.0",
+    "d3-geo": "^1.6.4",
+    "express": "^4.15.3",
+    "helmet": "^3.8.0",
+    "lodash": "^4.17.4",
+    "moment": "^2.18.1",
+    "node-mailer": "^0.1.1",
+    "pg-promise": "^6.3.5"
+  }
+}
