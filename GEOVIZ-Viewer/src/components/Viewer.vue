@@ -29,9 +29,9 @@
     data () {
       return {
         currentProjection: 'orthographic',
+        currentView: '-170, 15, 300',
         isMobile: false,
         params: {
-          INIT_ORIENTATION: '-170, 15, 300',
           MIN_MOVE: 4,
           MOVE_END_WAIT: 1000,
           PROJECTION_LIST: globes.projectionList,
@@ -51,6 +51,9 @@
       },
       globe: function () {
         return this.buildGlobe(this.currentProjection)
+      },
+      path: function () {
+        return d3.geoPath().projection(this.globe.projection).pointRadius(7)
       }
     },
     methods: {
@@ -60,23 +63,24 @@
         } else {return null}
       },
       drawGlobe: function () {
+        console.log('drawing...')
         // First clear map and foreground svg contents.
         micro.removeChildren(d3.select('#map').node())
         micro.removeChildren(d3.select('#foreground').node())
         // Create new map svg elements.
         this.globe.defineMap(d3.select('#map'), d3.select('#foreground'))
 
-        this.globe.orientation(this.params.INIT_ORIENTATION, this.params.VIEW)
+        this.globe.orientation(this.currentView, this.params.VIEW)
 
-        let path = d3.geoPath().projection(this.globe.projection).pointRadius(7)
         let coastline = d3.select('.coastline')
         let lakes = d3.select('.lakes')
         coastline.datum(this.earthTopo.coastHi)
         lakes.datum(this.earthTopo.lakesHi)
-        d3.selectAll('path').attr('d', path)
+        d3.selectAll('path').attr('d', this.path)
       },
       onUserInput: function () {
         let vueViewer = this
+
         function newOp (startMouse, startScale) {
           return {
             type: 'click',  // initially assumed to be a click operation
@@ -89,14 +93,18 @@
         let op = null
         let zoom = d3.zoom()
           .on('start', () => {
-            op = op || newOp(d3.mouse(document.getElementById('display')), /*zoom.scale()*/ 1)  // a new operation begins
+            //TODO: temp set scale to 1
+            op = op || newOp(d3.mouse(document.getElementById('display')), /*zoom.scale()*/ d3.zoomTransform(document.getElementById('display')).k)  // a new operation begins
             console.log('started')
           })
           .on('zoom', () => {
             console.log('zooming...')
             let currentMouse = d3.mouse(document.getElementById('display'))
-            let currentScale = d3.event.scale
-            op = op || newOp(currentMouse, 1)  // Fix bug on some browsers where zoomstart fires out of order.
+            // console.log(currentMouse)
+            //TODO: temp set scale to 1
+           // let currentScale = d3.event.scale
+            let currentScale = d3.zoomTransform(document.getElementById('display')).k
+            op = op || newOp(currentMouse, 10)  // Fix bug on some browsers where zoomstart fires out of order.
             if (op.type === 'click' || op.type === 'spurious') {
               let distanceMoved = micro.distance(currentMouse, op.startMouse)
               if (currentScale === op.startScale && distanceMoved < vueViewer.params.MIN_MOVE) {
@@ -111,7 +119,16 @@
             }
 
             // when zooming, ignore whatever the mouse is doing--really cleans up behavior on touch devices
-            op.manipulator.move(op.type === 'zoom' ? null : currentMouse, currentScale)
+            console.log('op type= ' + op.type)
+            console.log('for real ' + op.type.toString() === 'zoom' ? null : currentMouse, currentScale)
+            op.manipulator.move(op.type.toString() === 'zoom' ? null : currentMouse, currentScale)
+//            vueViewer.drawGlobe()
+            d3.selectAll("path").attr("d", this.path)
+            let coastline = d3.select('.coastline')
+            let lakes = d3.select('.lakes')
+            coastline.datum(this.earthTopo.coastHi)
+            lakes.datum(this.earthTopo.lakesHi)
+            d3.selectAll('path').attr('d', this.path)
           })
           .on('end', () => {
             console.log('ended')
