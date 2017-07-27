@@ -1,7 +1,7 @@
 <template>
   <div>
     <h2>let's do it</h2>
-    <button @click="drawGlobe">ttt</button>
+    <button @click="drawGlobe">draw</button>
     <div id="display">
       <svg id="map" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
       <canvas id="animation" class="fill-screen"></canvas>
@@ -22,16 +22,22 @@
   import * as d3 from 'd3'
   // temp fix till topojson start to use es6 export, https://github.com/topojson/topojson/issues/285
   import * as topojson from 'topojson/node_modules/topojson-client/src/feature'
+  import * as micro from '../Utils/micro'
   import * as globes from '../Utils/globes'
   import earthTopoPC from '../data/earth-topo.json'
   import earthTopoMobile from '../data/earth-topo-mobile.json'
 
   export default {
-    name: 'hello',
+    name: 'Viewer',
     data () {
       return {
+        currentProjection: 'atlantis',
         isMobile: false,
-        test: globes.projectionList
+        params: {
+          projectionList: globes.projectionList,
+          // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
+          view: micro.view()
+        }
       }
     },
     computed: {
@@ -42,11 +48,25 @@
         } else {
           return this.prepTopoMesh(earthTopoPC)
         }
+      },
+      globe: function () {
+        return this.buildGlobe(this.currentProjection)
       }
     },
     methods: {
+      buildGlobe: function (projectionName) {
+        if (Object.keys(this.params.projectionList).indexOf(projectionName) >= 0) {
+          return globes[projectionName]()
+        } else {return null}
+      },
       drawGlobe: function () {
-        globes.orthographic().defineMap(d3.select("#map"), d3.select("#foreground"))
+        this.globe.defineMap(d3.select('#map'), d3.select('#foreground'))
+        let path = d3.geoPath().projection(this.globe.projection).pointRadius(7);
+        let coastline = d3.select(".coastline");
+        let lakes = d3.select(".lakes");
+        coastline.datum(this.earthTopo.coastHi);
+        lakes.datum(this.earthTopo.lakesHi);
+        d3.selectAll("path").attr("d", path);
       },
       prepTopoMesh: function (topojsonData) {
 
@@ -65,6 +85,11 @@
       }
     },
     mounted: function () {
+      // enlarge charting dom to full screen
+      _.forEach(document.getElementsByClassName('fill-screen'), element => {
+        element.style.height = this.params.view.height
+        element.style.width = this.params.view.width
+      })
     }
   }
 </script>
@@ -75,21 +100,13 @@ d3.geo.(\w)
 d3.geo\U$1\E
 -->
 <style lang="scss" rel="stylesheet/scss" scoped>
-  h1, h2 {
-    font-weight: normal;
-  }
-
-  ul {
-    list-style-type: none;
-    padding: 0;
-  }
-
-  li {
-    display: inline-block;
-    margin: 0 10px;
-  }
-
+  /*TODO: change to BEM style, next time...*/
   a {
     color: #42b983;
   }
+
+  svg {
+    z-index: -100;
+  }
+
 </style>
