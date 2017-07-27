@@ -61,8 +61,8 @@
       },
       drawGlobe: function () {
         // First clear map and foreground svg contents.
-        micro.removeChildren(d3.select("#map").node())
-        micro.removeChildren(d3.select("#foreground").node())
+        micro.removeChildren(d3.select('#map').node())
+        micro.removeChildren(d3.select('#foreground').node())
         // Create new map svg elements.
         this.globe.defineMap(d3.select('#map'), d3.select('#foreground'))
 
@@ -75,46 +75,53 @@
         lakes.datum(this.earthTopo.lakesHi)
         d3.selectAll('path').attr('d', path)
       },
-      /*      onUserInput: function () {
-              function newOp (startMouse, startScale) {
-                return {
-                  type: 'click',  // initially assumed to be a click operation
-                  startMouse: startMouse,
-                  startScale: startScale,
-                  manipulator: this.globe.manipulator(startMouse, startScale)
-                }
+      onUserInput: function () {
+        let vueViewer = this
+        function newOp (startMouse, startScale) {
+          return {
+            type: 'click',  // initially assumed to be a click operation
+            startMouse: startMouse,
+            startScale: startScale,
+            manipulator: vueViewer.globe.manipulator(startMouse, startScale)
+          }
+        }
+
+        let op = null
+        let zoom = d3.zoom()
+          .on('start', () => {
+            op = op || newOp(d3.mouse(document.getElementById('display')), /*zoom.scale()*/ 1)  // a new operation begins
+            console.log('started')
+          })
+          .on('zoom', () => {
+            console.log('zooming...')
+            let currentMouse = d3.mouse(document.getElementById('display'))
+            let currentScale = d3.event.scale
+            op = op || newOp(currentMouse, 1)  // Fix bug on some browsers where zoomstart fires out of order.
+            if (op.type === 'click' || op.type === 'spurious') {
+              let distanceMoved = micro.distance(currentMouse, op.startMouse)
+              if (currentScale === op.startScale && distanceMoved < vueViewer.params.MIN_MOVE) {
+                // to reduce annoyance, ignore op if mouse has barely moved and no zoom is occurring
+                op.type = distanceMoved > 0 ? 'click' : 'spurious'
+                return
               }
+              op.type = 'drag'
+            }
+            if (currentScale !== op.startScale) {
+              op.type = 'zoom' // whenever a scale change is detected, (stickily) switch to a zoom operation
+            }
 
-              let op = null
-              let zoom = d3.zoom()
-                .on('start', () => {
-                  op = op || newOp(d3.mouse(this), zoom.scale())  // a new operation begins
-                })
-                .on('zoom', () => {
-                  let currentMouse = d3.mouse(this)
-                  let currentScale = d3.event.scale
-                  op = op || newOp(currentMouse, 1)  // Fix bug on some browsers where zoomstart fires out of order.
-                  if (op.type === 'click' || op.type === 'spurious') {
-                    let distanceMoved = micro.distance(currentMouse, op.startMouse)
-                    if (currentScale === op.startScale && distanceMoved < this.params.MIN_MOVE) {
-                      // to reduce annoyance, ignore op if mouse has barely moved and no zoom is occurring
-                      op.type = distanceMoved > 0 ? 'click' : 'spurious'
-                      return
-                    }
-                    op.type = 'drag'
-                  }
-                  if (currentScale !== op.startScale) {
-                    op.type = 'zoom' // whenever a scale change is detected, (stickily) switch to a zoom operation
-                  }
+            // when zooming, ignore whatever the mouse is doing--really cleans up behavior on touch devices
+            op.manipulator.move(op.type === 'zoom' ? null : currentMouse, currentScale)
+          })
+          .on('end', () => {
+            console.log('ended')
+            op.manipulator.end()
+            op = null  // the drag/zoom/click operation is over
+          })
 
-                  // when zooming, ignore whatever the mouse is doing--really cleans up behavior on touch devices
-                  op.manipulator.move(op.type === 'zoom' ? null : currentMouse, currentScale)
-                })
-                .on('end', () => {
-                  op.manipulator.end()
-                  op = null  // the drag/zoom/click operation is over
-                })
-            },*/
+        d3.select('#display').call(zoom)
+
+      },
       prepTopoMesh: function (topojsonData) {
         let isMobile = this.isMobile
         let o = topojsonData.objects
@@ -138,6 +145,8 @@
       // enlarge charting dom to full screen
       d3.selectAll('.fill-screen').attr('width', this.params.VIEW.width).attr('height', this.params.VIEW.height)
       this.drawGlobe()
+      this.onUserInput()
+
     }
   }
 </script>
