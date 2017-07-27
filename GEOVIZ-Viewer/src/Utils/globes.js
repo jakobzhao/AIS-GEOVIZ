@@ -9,6 +9,8 @@
 // edit by Likun CHEN 07/23/2017
 
 import * as d3 from 'd3'
+// temp d3-geo-projection import fix
+import * as d3p from 'd3-geo-projection'
 import _ from 'lodash'
 import * as micro from './micro'
 
@@ -210,7 +212,7 @@ export function newGlobe (source, view) {
 export function atlantis () {
   return newGlobe({
     newProjection: function () {
-      return d3.geoMollweide().rotate([30, -45, 90]).precision(0.1)
+      return d3p.geoMollweide().rotate([30, -45, 90]).precision(0.1)
     }
   })
 }
@@ -298,11 +300,10 @@ export function stereographic (view) {
   }, view)
 }
 
-
 export function waterman () {
   return newGlobe({
     newProjection: function () {
-      return d3.geoPolyhedron.waterman().rotate([20, 0]).precision(0.1)
+      return d3p.geoPolyhedralWaterman().rotate([20, 0]).precision(0.1)
     },
     defineMap: function (mapSvg, foregroundSvg) {
       let path = d3.geoPath().projection(this.projection)
@@ -339,7 +340,7 @@ export function waterman () {
 export function winkel3 () {
   return newGlobe({
     newProjection: function () {
-      return d3.geoWinkel3().precision(0.1)
+      return d3p.geoWinkel3().precision(0.1)
     }
   })
 }
