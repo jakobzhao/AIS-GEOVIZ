@@ -1,13 +1,10 @@
 <template>
   <div>
-    <h2>let's do it</h2>
-    <button @click="drawGlobe">draw</button>
     <div id="display">
       <svg id="map" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
       <canvas id="animation" class="fill-screen"></canvas>
       <canvas id="overlay" class="fill-screen"></canvas>
       <svg id="foreground" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
-
     </div>
   </div>
 </template>
@@ -31,12 +28,15 @@
     name: 'Viewer',
     data () {
       return {
-        currentProjection: 'atlantis',
+        currentProjection: 'orthographic',
         isMobile: false,
         params: {
-          projectionList: globes.projectionList,
+          INIT_ORIENTATION: '-170, 15, 300',
+          MIN_MOVE: 4,
+          MOVE_END_WAIT: 1000,
+          PROJECTION_LIST: globes.projectionList,
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
-          view: micro.view()
+          VIEW: micro.view()
         }
       }
     },
@@ -55,21 +55,67 @@
     },
     methods: {
       buildGlobe: function (projectionName) {
-        if (Object.keys(this.params.projectionList).indexOf(projectionName) >= 0) {
+        if (Object.keys(this.params.PROJECTION_LIST).indexOf(projectionName) >= 0) {
           return globes[projectionName]()
         } else {return null}
       },
       drawGlobe: function () {
+        // First clear map and foreground svg contents.
+        micro.removeChildren(d3.select("#map").node())
+        micro.removeChildren(d3.select("#foreground").node())
+        // Create new map svg elements.
         this.globe.defineMap(d3.select('#map'), d3.select('#foreground'))
-        let path = d3.geoPath().projection(this.globe.projection).pointRadius(7);
-        let coastline = d3.select(".coastline");
-        let lakes = d3.select(".lakes");
-        coastline.datum(this.earthTopo.coastHi);
-        lakes.datum(this.earthTopo.lakesHi);
-        d3.selectAll("path").attr("d", path);
-      },
-      prepTopoMesh: function (topojsonData) {
 
+        this.globe.orientation(this.params.INIT_ORIENTATION, this.params.VIEW)
+
+        let path = d3.geoPath().projection(this.globe.projection).pointRadius(7)
+        let coastline = d3.select('.coastline')
+        let lakes = d3.select('.lakes')
+        coastline.datum(this.earthTopo.coastHi)
+        lakes.datum(this.earthTopo.lakesHi)
+        d3.selectAll('path').attr('d', path)
+      },
+      /*      onUserInput: function () {
+              function newOp (startMouse, startScale) {
+                return {
+                  type: 'click',  // initially assumed to be a click operation
+                  startMouse: startMouse,
+                  startScale: startScale,
+                  manipulator: this.globe.manipulator(startMouse, startScale)
+                }
+              }
+
+              let op = null
+              let zoom = d3.zoom()
+                .on('start', () => {
+                  op = op || newOp(d3.mouse(this), zoom.scale())  // a new operation begins
+                })
+                .on('zoom', () => {
+                  let currentMouse = d3.mouse(this)
+                  let currentScale = d3.event.scale
+                  op = op || newOp(currentMouse, 1)  // Fix bug on some browsers where zoomstart fires out of order.
+                  if (op.type === 'click' || op.type === 'spurious') {
+                    let distanceMoved = micro.distance(currentMouse, op.startMouse)
+                    if (currentScale === op.startScale && distanceMoved < this.params.MIN_MOVE) {
+                      // to reduce annoyance, ignore op if mouse has barely moved and no zoom is occurring
+                      op.type = distanceMoved > 0 ? 'click' : 'spurious'
+                      return
+                    }
+                    op.type = 'drag'
+                  }
+                  if (currentScale !== op.startScale) {
+                    op.type = 'zoom' // whenever a scale change is detected, (stickily) switch to a zoom operation
+                  }
+
+                  // when zooming, ignore whatever the mouse is doing--really cleans up behavior on touch devices
+                  op.manipulator.move(op.type === 'zoom' ? null : currentMouse, currentScale)
+                })
+                .on('end', () => {
+                  op.manipulator.end()
+                  op = null  // the drag/zoom/click operation is over
+                })
+            },*/
+      prepTopoMesh: function (topojsonData) {
         let isMobile = this.isMobile
         let o = topojsonData.objects
         let coastLo = topojson.feature(topojsonData, isMobile ? o.coastline_tiny : o.coastline_110m)
@@ -82,14 +128,16 @@
           lakesLo: lakesLo,
           lakesHi: lakesHi
         }
+      },
+      doUserInput: function (zoom) {
+        d3.select('#display').call(zoom)
       }
+
     },
     mounted: function () {
       // enlarge charting dom to full screen
-      _.forEach(document.getElementsByClassName('fill-screen'), element => {
-        element.style.height = this.params.view.height
-        element.style.width = this.params.view.width
-      })
+      d3.selectAll('.fill-screen').attr('width', this.params.VIEW.width).attr('height', this.params.VIEW.height)
+      this.drawGlobe()
     }
   }
 </script>
