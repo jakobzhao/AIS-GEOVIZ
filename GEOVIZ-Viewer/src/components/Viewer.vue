@@ -30,9 +30,10 @@
     data () {
       return {
         currentProjection: 'orthographic',
-        currentView: '-170, 15, 300',
+        currentView: '-170, 15, 450',
         isMobile: false,
         params: {
+          DEFAULT_SCALE: 450,
           MIN_MOVE: 4,
           MOVE_END_WAIT: 1000,
           PROJECTION_LIST: globes.projectionList,
@@ -96,6 +97,7 @@
         let zoom = d3.zoom()
           .on('start', () => {
             //TODO: temp set scale to 1
+            //TODO: show find a better to way to use 'this === #display' here
             op = op || newOp(d3.mouse(document.getElementById('display')), /*zoom.scale()*/ d3.zoomTransform(document.getElementById('display')).k)  // a new operation begins
             console.log('started')
           })
@@ -123,7 +125,7 @@
             // when zooming, ignore whatever the mouse is doing--really cleans up behavior on touch devices
             console.log('op type= ' + op.type)
             console.log('for real ' + op.type.toString() === 'zoom' ? null : currentMouse, currentScale)
-            op.manipulator.move(op.type.toString() === 'zoom' ? null : currentMouse, currentScale)
+            op.manipulator.move(op.type.toString() === 'zoom' ? null : currentMouse, currentScale * this.params.DEFAULT_SCALE)
 //            vueViewer.drawGlobe()
             d3.selectAll('path').attr('d', this.path)
             let coastline = d3.select('.coastline')
@@ -218,7 +220,7 @@
       d3.selectAll('.fill-screen').attr('width', this.params.VIEW.width).attr('height', this.params.VIEW.height)
       this.drawGlobe()
       this.onUserInput()
-      this.pixiTest()
+     // this.pixiTest()
     }
   }
 </script>
