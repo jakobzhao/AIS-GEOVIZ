@@ -16,6 +16,7 @@
   ES6promise.polyfill()
   import axios from 'axios'
   import Promise from 'bluebird'
+  import * as PIXI from 'pixi.js'
   import * as d3 from 'd3'
   // temp fix till topojson start to use es6 export, https://github.com/topojson/topojson/issues/285
   import * as topojson from 'topojson/node_modules/topojson-client/src/feature'
@@ -37,7 +38,8 @@
           PROJECTION_LIST: globes.projectionList,
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
           VIEW: micro.view()
-        }
+        },
+        pixiInstance: new PIXI.Application(1200, 800, {antialias: true, transparent: true, resolution: 1})
       }
     },
     computed: {
@@ -102,7 +104,7 @@
             let currentMouse = d3.mouse(document.getElementById('display'))
             // console.log(currentMouse)
             //TODO: temp set scale to 1
-           // let currentScale = d3.event.scale
+            // let currentScale = d3.event.scale
             let currentScale = d3.zoomTransform(document.getElementById('display')).k
             op = op || newOp(currentMouse, 10)  // Fix bug on some browsers where zoomstart fires out of order.
             if (op.type === 'click' || op.type === 'spurious') {
@@ -123,7 +125,7 @@
             console.log('for real ' + op.type.toString() === 'zoom' ? null : currentMouse, currentScale)
             op.manipulator.move(op.type.toString() === 'zoom' ? null : currentMouse, currentScale)
 //            vueViewer.drawGlobe()
-            d3.selectAll("path").attr("d", this.path)
+            d3.selectAll('path').attr('d', this.path)
             let coastline = d3.select('.coastline')
             let lakes = d3.select('.lakes')
             coastline.datum(this.earthTopo.coastHi)
@@ -155,6 +157,59 @@
       },
       doUserInput: function (zoom) {
         d3.select('#display').call(zoom)
+      },
+      pixiTest: function () {
+        document.getElementById('display').appendChild(this.pixiInstance.view)
+        let sprites = new PIXI.particles.ParticleContainer(10000, {
+          scale: true,
+          position: true,
+          rotation: true,
+          uvs: true,
+          alpha: true
+        })
+        this.pixiInstance.stage.addChild(sprites)
+
+        // create an array to store all the sprites
+        let vessel = []
+
+        let totalSprites = this.pixiInstance.renderer instanceof PIXI.WebGLRenderer ? 3000 : 100
+
+        for (let i = 0; i < totalSprites; i++) {
+
+          // create a new Sprite
+          let dude = PIXI.Sprite.fromImage('/static/bg.png')
+
+          dude.tint = Math.random() * 0xE8D4CD
+
+          // set the anchor point so the texture is centerd on the sprite
+          dude.anchor.set(0.5)
+
+          // different maggots, different sizes
+          dude.scale.set(0.2 + Math.random() * 0.1)
+
+          // scatter them all
+          dude.x = Math.random() * this.pixiInstance.renderer.width
+          dude.y = Math.random() * this.pixiInstance.renderer.height
+
+          dude.tint = Math.random() * 0x808080
+
+          // create a random direction in radians
+          dude.direction = Math.random() * Math.PI * 2
+
+          // this number will be used to modify the direction of the sprite over time
+          dude.turningSpeed = Math.random() - 0.8
+
+          // create a random speed between 0 - 2, and these maggots are slooww
+          dude.speed = (2 + Math.random() * 2) * 0.2
+
+          dude.offset = Math.random() * 100
+
+          // finally we push the dude into the maggots array so it it can be easily accessed later
+          vessel.push(dude)
+
+          sprites.addChild(dude)
+        }
+
       }
 
     },
@@ -163,7 +218,7 @@
       d3.selectAll('.fill-screen').attr('width', this.params.VIEW.width).attr('height', this.params.VIEW.height)
       this.drawGlobe()
       this.onUserInput()
-
+      this.pixiTest()
     }
   }
 </script>
