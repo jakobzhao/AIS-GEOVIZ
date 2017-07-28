@@ -30,7 +30,7 @@
     data () {
       return {
         currentProjection: 'winkel3',
-        currentView: '-170, 15, 450',
+        currentView: '-170, 15, null',
         isMobile: false,
         params: {
           DEBOUNCE_WAIT: 500,
@@ -38,6 +38,7 @@
           MIN_MOVE: 4,
           MOVE_END_WAIT: 1000,
           PROJECTION_LIST: globes.projectionList,
+          REDRAW_WAIT: 5,
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
           VIEW: micro.view()
         },
@@ -139,7 +140,7 @@
           })
           .on('end', () => {
             console.log('ended')
-
+            this.currentView = this.globe.orientation()
             coastline.datum(this.earthTopo.coastHi)
             lakes.datum(this.earthTopo.lakesHi)
             d3.selectAll('path').attr('d', this.path)
@@ -148,7 +149,7 @@
             if (op.type === 'click') {
             }
             else if (op.type !== 'spurious') {
-              //this.redrawGlobe()
+
             }
             op = null  // the drag/zoom/click operation is over
           })
@@ -169,11 +170,6 @@
           lakesLo: lakesLo,
           lakesHi: lakesHi
         }
-      },
-      redrawGlobe: function () {
-        _.debounce(() => {
-
-        }, this.params.DEBOUNCE_WAIT)
       },
       pixiTest: function () {
         document.getElementById('display').appendChild(this.pixiInstance.view)
