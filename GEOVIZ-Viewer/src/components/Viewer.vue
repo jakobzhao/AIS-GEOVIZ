@@ -29,10 +29,11 @@
     name: 'Viewer',
     data () {
       return {
-        currentProjection: 'orthographic',
+        currentProjection: 'winkel3',
         currentView: '-170, 15, 450',
         isMobile: false,
         params: {
+          DEBOUNCE_WAIT: 500,
           DEFAULT_SCALE: 450,
           MIN_MOVE: 4,
           MOVE_END_WAIT: 1000,
@@ -83,6 +84,8 @@
       },
       onUserInput: function () {
         let vueViewer = this
+        let coastline = d3.select('.coastline')
+        let lakes = d3.select('.lakes')
 
         function newOp (startMouse, startScale) {
           return {
@@ -100,6 +103,11 @@
             //TODO: show find a better to way to use 'this === #display' here
             op = op || newOp(d3.mouse(document.getElementById('display')), /*zoom.scale()*/ d3.zoomTransform(document.getElementById('display')).k)  // a new operation begins
             console.log('started')
+
+            // replace path with low-res data
+            coastline.datum(this.earthTopo.coastLo)
+            lakes.datum(this.earthTopo.lakesLo)
+            d3.selectAll('path').attr('d', this.path)
           })
           .on('zoom', () => {
             console.log('zooming...')
@@ -124,19 +132,24 @@
 
             // when zooming, ignore whatever the mouse is doing--really cleans up behavior on touch devices
             console.log('op type= ' + op.type)
-            console.log('for real ' + op.type.toString() === 'zoom' ? null : currentMouse, currentScale)
+            // console.log('for real ' + op.type.toString() === 'zoom' ? null : currentMouse, currentScale)
             op.manipulator.move(op.type.toString() === 'zoom' ? null : currentMouse, currentScale * this.params.DEFAULT_SCALE)
-//            vueViewer.drawGlobe()
-            d3.selectAll('path').attr('d', this.path)
-            let coastline = d3.select('.coastline')
-            let lakes = d3.select('.lakes')
-            coastline.datum(this.earthTopo.coastHi)
-            lakes.datum(this.earthTopo.lakesHi)
+
             d3.selectAll('path').attr('d', this.path)
           })
           .on('end', () => {
             console.log('ended')
+
+            coastline.datum(this.earthTopo.coastHi)
+            lakes.datum(this.earthTopo.lakesHi)
+            d3.selectAll('path').attr('d', this.path)
+
             op.manipulator.end()
+            if (op.type === 'click') {
+            }
+            else if (op.type !== 'spurious') {
+              //this.redrawGlobe()
+            }
             op = null  // the drag/zoom/click operation is over
           })
 
@@ -157,8 +170,10 @@
           lakesHi: lakesHi
         }
       },
-      doUserInput: function (zoom) {
-        d3.select('#display').call(zoom)
+      redrawGlobe: function () {
+        _.debounce(() => {
+
+        }, this.params.DEBOUNCE_WAIT)
       },
       pixiTest: function () {
         document.getElementById('display').appendChild(this.pixiInstance.view)
@@ -220,7 +235,7 @@
       d3.selectAll('.fill-screen').attr('width', this.params.VIEW.width).attr('height', this.params.VIEW.height)
       this.drawGlobe()
       this.onUserInput()
-     // this.pixiTest()
+      // this.pixiTest()
     }
   }
 </script>
