@@ -1,5 +1,6 @@
 <template>
   <div>
+    <h2 style="color: white">{{currentView}}</h2>
     <div id="display">
       <svg id="map" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
       <canvas id="animation" class="fill-screen"></canvas>
@@ -29,8 +30,9 @@
     name: 'Viewer',
     data () {
       return {
-        currentProjection: 'winkel3',
+        currentProjection: 'orthographic',
         currentView: '-170, 15, null',
+        earthTopo: null,
         isMobile: false,
         params: {
           DEBOUNCE_WAIT: 500,
@@ -46,22 +48,40 @@
       }
     },
     computed: {
-      earthTopo: function () {
-        let isMobile = this.isMobile
-        if (isMobile) {
-          return this.prepTopoMesh(earthTopoMobile)
-        } else {
-          return this.prepTopoMesh(earthTopoPC)
-        }
-      },
       globe: function () {
         return this.buildGlobe(this.currentProjection)
       },
       path: function () {
         return d3.geoPath().projection(this.globe.projection).pointRadius(7)
+      },
+      currentScale: function () {
+        // return (this.currentView.split(','))[2] === null ? 1 : (this.currentView.split(','))[2]
+        return this.globe.projection.scale()
       }
     },
     methods: {
+      setEarthTopo: function () {
+        this.isMobile = micro.isMobile()
+        let isMobile = this.isMobile
+        if (this.isMobile) {
+          this.earthTopo = this.prepTopoMesh(earthTopoMobile, isMobile)
+        } else {
+          this.earthTopo = this.prepTopoMesh(earthTopoPC, isMobile)
+        }
+      },
+      prepTopoMesh: function (topojsonData, isMobile) {
+         let o = topojsonData.objects
+        let coastLo = topojson.feature(topojsonData, isMobile ? o.coastline_tiny : o.coastline_110m)
+        let coastHi = topojson.feature(topojsonData, isMobile ? o.coastline_110m : o.coastline_50m)
+        let lakesLo = topojson.feature(topojsonData, isMobile ? o.lakes_tiny : o.lakes_110m)
+        let lakesHi = topojson.feature(topojsonData, isMobile ? o.lakes_110m : o.lakes_50m)
+        return {
+          coastLo: coastLo,
+          coastHi: coastHi,
+          lakesLo: lakesLo,
+          lakesHi: lakesHi
+        }
+      },
       buildGlobe: function (projectionName) {
         if (Object.keys(this.params.PROJECTION_LIST).indexOf(projectionName) >= 0) {
           return globes[projectionName]()
@@ -115,32 +135,37 @@
             let currentMouse = d3.mouse(document.getElementById('display'))
             // console.log(currentMouse)
             //TODO: temp set scale to 1
-            // let currentScale = d3.event.scale
-            let currentScale = d3.zoomTransform(document.getElementById('display')).k
+            // let currentZoomRatio = d3.event.scale
+            let currentZoomRatio = d3.zoomTransform(document.getElementById('display')).k
+            // currentZoomRatio = currentZoomRatio === 1 ? this.currentZoomRatio - 0.1 : currentZoomRatio
+            // console.log('current Scale= ' + currentZoomRatio)
             op = op || newOp(currentMouse, 10)  // Fix bug on some browsers where zoomstart fires out of order.
             if (op.type === 'click' || op.type === 'spurious') {
               let distanceMoved = micro.distance(currentMouse, op.startMouse)
-              if (currentScale === op.startScale && distanceMoved < vueViewer.params.MIN_MOVE) {
+              // console.log(distanceMoved + ' moved')
+              if (currentZoomRatio === op.startScale && distanceMoved < vueViewer.params.MIN_MOVE) {
                 // to reduce annoyance, ignore op if mouse has barely moved and no zoom is occurring
                 op.type = distanceMoved > 0 ? 'click' : 'spurious'
                 return
               }
               op.type = 'drag'
             }
-            if (currentScale !== op.startScale) {
+            if (currentZoomRatio !== op.startScale) {
               op.type = 'zoom' // whenever a scale change is detected, (stickily) switch to a zoom operation
             }
 
             // when zooming, ignore whatever the mouse is doing--really cleans up behavior on touch devices
             console.log('op type= ' + op.type)
-            // console.log('for real ' + op.type.toString() === 'zoom' ? null : currentMouse, currentScale)
-            op.manipulator.move(op.type.toString() === 'zoom' ? null : currentMouse, currentScale * this.params.DEFAULT_SCALE)
+            // console.log('for real ' + op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio)
+            op.manipulator.move(op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio * vueViewer.currentScale)
+            this.currentView = this.globe.orientation()
 
             d3.selectAll('path').attr('d', this.path)
           })
           .on('end', () => {
             console.log('ended')
             this.currentView = this.globe.orientation()
+            console.log(this.currentView)
             coastline.datum(this.earthTopo.coastHi)
             lakes.datum(this.earthTopo.lakesHi)
             d3.selectAll('path').attr('d', this.path)
@@ -156,20 +181,6 @@
 
         d3.select('#display').call(zoom)
 
-      },
-      prepTopoMesh: function (topojsonData) {
-        let isMobile = this.isMobile
-        let o = topojsonData.objects
-        let coastLo = topojson.feature(topojsonData, isMobile ? o.coastline_tiny : o.coastline_110m)
-        let coastHi = topojson.feature(topojsonData, isMobile ? o.coastline_110m : o.coastline_50m)
-        let lakesLo = topojson.feature(topojsonData, isMobile ? o.lakes_tiny : o.lakes_110m)
-        let lakesHi = topojson.feature(topojsonData, isMobile ? o.lakes_110m : o.lakes_50m)
-        return {
-          coastLo: coastLo,
-          coastHi: coastHi,
-          lakesLo: lakesLo,
-          lakesHi: lakesHi
-        }
       },
       pixiTest: function () {
         document.getElementById('display').appendChild(this.pixiInstance.view)
@@ -229,8 +240,10 @@
     mounted: function () {
       // enlarge charting dom to full screen
       d3.selectAll('.fill-screen').attr('width', this.params.VIEW.width).attr('height', this.params.VIEW.height)
+      this.setEarthTopo()
       this.drawGlobe()
       this.onUserInput()
+      this.currentView = this.globe.orientation()
       // this.pixiTest()
     }
   }

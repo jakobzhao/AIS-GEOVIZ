@@ -132,7 +132,7 @@ export function standardGlobe () {
     manipulator: function (startMouse, startScale) {
       let projection = this.projection
       // TODO: using Viewer.vue.params.DEFAULT_SCALE for now, should replace this magic number with a programmatic way (calc scale change of svg)
-      let sensitivity = 60 / ( startScale * 450)// seems to provide a good drag scaling factor
+      let sensitivity = 60 / (startScale * 279) // seems to provide a good drag scaling factor
       let rotation = [projection.rotate()[0] / sensitivity, -projection.rotate()[1] / sensitivity]
       let original = projection.precision()
       projection.precision(original * 10)
