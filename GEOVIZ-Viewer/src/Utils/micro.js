@@ -15,8 +15,7 @@
  */
 export const τ = 2 * Math.PI
 export const H = 0.0000360 // 0.0000360°φ ~= 4m
-export const DEFAULT_CONFIG = 'current/wind/surface/level/orthographic'
-export const TOPOLOGY = isMobile() ? '/data/earth-topo-mobile.json?v2' : '/data/earth-topo.json?v2'
+
 
 /**
  * @returns {Boolean} true if the specified value is truthy.
