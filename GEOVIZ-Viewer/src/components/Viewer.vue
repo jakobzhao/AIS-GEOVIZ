@@ -183,56 +183,101 @@
 
       },
       pixiTest: function () {
-        document.getElementById('display').appendChild(this.pixiInstance.view)
-        let sprites = new PIXI.particles.ParticleContainer(10000, {
+        var app = new PIXI.Application(1200, 800, {antialias: true, transparent: true, resolution: 1});
+        document.body.appendChild(app.view);
+
+        var sprites = new PIXI.particles.ParticleContainer(10000, {
           scale: true,
           position: true,
           rotation: true,
           uvs: true,
           alpha: true
-        })
-        this.pixiInstance.stage.addChild(sprites)
+        });
+        app.stage.addChild(sprites);
 
-        // create an array to store all the sprites
-        let vessel = []
+// create an array to store all the sprites
+        var maggots = [];
 
-        let totalSprites = this.pixiInstance.renderer instanceof PIXI.WebGLRenderer ? 3000 : 100
+        var totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? 10000 : 100;
 
-        for (let i = 0; i < totalSprites; i++) {
+        for (var i = 0; i < totalSprites; i++) {
 
           // create a new Sprite
-          let dude = PIXI.Sprite.fromImage('/static/bg.png')
+          var dude = PIXI.Sprite.fromImage('static/bg.png');
 
-          dude.tint = Math.random() * 0xE8D4CD
+          dude.tint = Math.random() * 0xE8D4CD;
 
           // set the anchor point so the texture is centerd on the sprite
-          dude.anchor.set(0.5)
+          dude.anchor.set(0.5);
 
           // different maggots, different sizes
-          dude.scale.set(0.2 + Math.random() * 0.1)
+          dude.scale.set(0.1 + Math.random() * 0.03);
 
           // scatter them all
-          dude.x = Math.random() * this.pixiInstance.renderer.width
-          dude.y = Math.random() * this.pixiInstance.renderer.height
+          dude.x = Math.random() * app.renderer.width;
+          dude.y = Math.random() * app.renderer.height;
 
-          dude.tint = Math.random() * 0x808080
+          dude.tint = Math.random() * 0x808080;
 
           // create a random direction in radians
-          dude.direction = Math.random() * Math.PI * 2
+          dude.direction = Math.random() * Math.PI * 2;
 
           // this number will be used to modify the direction of the sprite over time
-          dude.turningSpeed = Math.random() - 0.8
+          dude.turningSpeed = Math.random() - 0.8;
 
           // create a random speed between 0 - 2, and these maggots are slooww
-          dude.speed = (2 + Math.random() * 2) * 0.2
+          dude.speed = (2 + Math.random() * 2) * 0.2;
 
-          dude.offset = Math.random() * 100
+          dude.offset = Math.random() * 100;
 
           // finally we push the dude into the maggots array so it it can be easily accessed later
-          vessel.push(dude)
+          maggots.push(dude);
 
-          sprites.addChild(dude)
+          sprites.addChild(dude);
         }
+
+// create a bounding box box for the little maggots
+        var dudeBoundsPadding = 100;
+        var dudeBounds = new PIXI.Rectangle(
+          -dudeBoundsPadding,
+          -dudeBoundsPadding,
+          app.renderer.width + dudeBoundsPadding * 2,
+          app.renderer.height + dudeBoundsPadding * 2
+        );
+
+        var tick = 0;
+
+        app.ticker.add(function() {
+
+          // iterate through the sprites and update their position
+          for (var i = 0; i < maggots.length; i++) {
+
+            var dude = maggots[i];
+            dude.scale.y = 0.95 + Math.sin(tick + dude.offset) * 0.05;
+            dude.direction += dude.turningSpeed * 0.01;
+            dude.x += Math.sin(dude.direction) * (dude.speed * dude.scale.y);
+            dude.y += Math.cos(dude.direction) * (dude.speed * dude.scale.y);
+            dude.rotation = -dude.direction + Math.PI;
+
+            // wrap the maggots
+            if (dude.x < dudeBounds.x) {
+              dude.x += dudeBounds.width;
+            }
+            else if (dude.x > dudeBounds.x + dudeBounds.width) {
+              dude.x -= dudeBounds.width;
+            }
+
+            if (dude.y < dudeBounds.y) {
+              dude.y += dudeBounds.height;
+            }
+            else if (dude.y > dudeBounds.y + dudeBounds.height) {
+              dude.y -= dudeBounds.height;
+            }
+          }
+
+          // increment the ticker
+          tick += 0.1;
+        });
 
       }
 
@@ -244,7 +289,7 @@
       this.drawGlobe()
       this.onUserInput()
       this.currentView = this.globe.orientation()
-      // this.pixiTest()
+       this.pixiTest()
     }
   }
 </script>
