@@ -10,11 +10,17 @@
 
     <div id="debug-info">
       <div>
-        <button class="btn btn-primary" v-for="projection in params.PROJECTION_LIST" :key="projection">{{projection}}&nbsp;</button>
+        <button class="btn btn-primary"
+                v-for="projection in params.PROJECTION_LIST"
+                :key="projection"
+                @click="changeProjection(projection)">
+          {{projection | startCase}}
+        </button>
       </div>
       <div>{{currentView.split(',')[0]}}</div>
       <div>{{currentView.split(',')[1]}}</div>
       <div>{{currentView.split(',')[2]}}</div>
+      <div>{{currentProjection}}</div>
       <div id="statsMeter"></div>
 
     </div>
@@ -43,16 +49,17 @@
     name: 'Viewer',
     data () {
       return {
-        currentProjection: 'orthographic',
+        currentProjection: 'winkel_tripel',
         currentView: '-170, 15, null',
         earthTopo: null,
+        globe: null,
         isMobile: false,
         params: {
           DEBOUNCE_WAIT: 500,
           DEFAULT_SCALE: 450,
           MIN_MOVE: 4,
           MOVE_END_WAIT: 1000,
-          PROJECTION_LIST: Object.keys(globes.projectionList).map(_.startCase),
+          PROJECTION_LIST: Object.keys(globes.projectionList),
           REDRAW_WAIT: 5,
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
           VIEW: micro.view()
@@ -62,9 +69,6 @@
       }
     },
     computed: {
-      globe: function () {
-        return this.buildGlobe(this.currentProjection)
-      },
       path: function () {
         return d3.geoPath().projection(this.globe.projection).pointRadius(7)
       },
@@ -105,12 +109,13 @@
 
       },
       buildGlobe: function (projectionName) {
-        if (this.params.PROJECTION_LIST.indexOf(_.startCase(projectionName)) >= 0) {
-          return globes[projectionName]()
+        if (this.params.PROJECTION_LIST.indexOf(projectionName) >= 0) {
+          return globes.projectionList[projectionName](this.params.VIEW)
         } else {return null}
       },
       drawGlobe: function () {
         console.log('drawing...')
+        this.globe = this.buildGlobe(this.currentProjection)
         // First clear map and foreground svg contents.
         micro.removeChildren(d3.select('#map').node())
         micro.removeChildren(d3.select('#foreground').node())
@@ -207,7 +212,7 @@
       pixiTest: function () {
         // this.stats.begin()
         //  this.pixiInstance = new PIXI.Application(1200, 800, {antialias: true, transparent: true, resolution: 1})
-        let app = new PIXI.Application(this.params.VIEW.width/4, this.params.VIEW.height/4, {antialias: true, transparent: true, resolution: 1})
+        let app = new PIXI.Application(this.params.VIEW.width / 4, this.params.VIEW.height / 4, {antialias: true, transparent: true, resolution: 1})
         // this.pixiInstance = app
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
@@ -305,6 +310,14 @@
         })
         //this.stats.end()
         //requestAnimationFrame( this.pixiTest )
+      },
+      changeProjection: function (newProjection) {
+        console.log(_.snakeCase(newProjection))
+        if (newProjection !== this.currentProjection) {
+          this.currentProjection = newProjection
+          this.buildGlobe(newProjection)
+        }
+
       }
     },
     mounted: function () {
@@ -315,9 +328,13 @@
       this.onUserInput()
       this.currentView = this.globe.orientation()
       this.addStatsMeter()
-        this.pixiTest()
+      this.pixiTest()
       //requestAnimationFrame(this.pixiTest)
-
+    },
+    filters: {
+      startCase: function (value) {
+        return _.startCase(value)
+      }
     }
   }
 </script>
@@ -330,6 +347,7 @@ d3.geo\U$1\E
 <style lang="scss" rel="stylesheet/scss">
   /*TODO: change to BEM style, next time...*/
   @import url('https://fonts.googleapis.com/css?family=Ubuntu:500');
+
   .btn {
     font-family: 'Ubuntu', Helvetica, Arial, sans-serif !important;
   }
