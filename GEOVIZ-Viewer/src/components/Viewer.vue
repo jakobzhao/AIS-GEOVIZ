@@ -1,6 +1,7 @@
 <template>
   <div>
     <h2 style="color: white">{{currentView}}</h2>
+    <div id="statsMeter"></div>
     <div id="display">
       <svg id="map" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
       <canvas id="animation" class="fill-screen"></canvas>
@@ -18,6 +19,7 @@
   import axios from 'axios'
   import Promise from 'bluebird'
   import * as PIXI from 'pixi.js'
+  import Stats from 'stats.js'
   import * as d3 from 'd3'
   // temp fix till topojson start to use es6 export, https://github.com/topojson/topojson/issues/285
   import * as topojson from 'topojson/node_modules/topojson-client/src/feature'
@@ -44,7 +46,8 @@
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
           VIEW: micro.view()
         },
-        pixiInstance: new PIXI.Application(1200, 800, {antialias: true, transparent: true, resolution: 1})
+        pixiInstance: null,
+        stats: null
       }
     },
     computed: {
@@ -70,7 +73,7 @@
         }
       },
       prepTopoMesh: function (topojsonData, isMobile) {
-         let o = topojsonData.objects
+        let o = topojsonData.objects
         let coastLo = topojson.feature(topojsonData, isMobile ? o.coastline_tiny : o.coastline_110m)
         let coastHi = topojson.feature(topojsonData, isMobile ? o.coastline_110m : o.coastline_50m)
         let lakesLo = topojson.feature(topojsonData, isMobile ? o.lakes_tiny : o.lakes_110m)
@@ -81,6 +84,14 @@
           lakesLo: lakesLo,
           lakesHi: lakesHi
         }
+      },
+      addStatsMeter: function () {
+        this.stats = new Stats()
+        this.stats.domElement.style.position = 'absolute'
+        this.stats.domElement.style.top = '0px'
+        //document.getElementsByName('#statsMeter').appendChild(this.stats.domElement)
+        document.body.appendChild(this.stats.domElement)
+
       },
       buildGlobe: function (projectionName) {
         if (Object.keys(this.params.PROJECTION_LIST).indexOf(projectionName) >= 0) {
@@ -183,104 +194,109 @@
 
       },
       pixiTest: function () {
-        var app = new PIXI.Application(1200, 800, {antialias: true, transparent: true, resolution: 1});
-        document.body.appendChild(app.view);
-
+       // this.stats.begin()
+      //  this.pixiInstance = new PIXI.Application(1200, 800, {antialias: true, transparent: true, resolution: 1})
+        let  app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
+       // this.pixiInstance = app
+        document.getElementById('display').appendChild(app.view)
+        app.view.className += 'fill-screen'
         var sprites = new PIXI.particles.ParticleContainer(10000, {
           scale: true,
           position: true,
           rotation: true,
           uvs: true,
           alpha: true
-        });
-        app.stage.addChild(sprites);
+        })
+        app.stage.addChild(sprites)
 
 // create an array to store all the sprites
-        var maggots = [];
+        var maggots = []
 
-        var totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? 10000 : 100;
+        var totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? 10000 : 100
+
 
         for (var i = 0; i < totalSprites; i++) {
 
           // create a new Sprite
-          var dude = PIXI.Sprite.fromImage('static/bg.png');
+          var dude = PIXI.Sprite.fromImage('static/bg.png')
 
-          dude.tint = Math.random() * 0xE8D4CD;
+          dude.tint = Math.random() * 0xE8D4CD
 
           // set the anchor point so the texture is centerd on the sprite
-          dude.anchor.set(0.5);
+          dude.anchor.set(0.5)
 
           // different maggots, different sizes
-          dude.scale.set(0.1 + Math.random() * 0.03);
+          dude.scale.set(0.1 + Math.random() * 0.03)
 
           // scatter them all
-          dude.x = Math.random() * app.renderer.width;
-          dude.y = Math.random() * app.renderer.height;
+          dude.x = Math.random() * app.renderer.width
+          dude.y = Math.random() * app.renderer.height
 
-          dude.tint = Math.random() * 0x808080;
+          dude.tint = Math.random() * 0x808080
 
           // create a random direction in radians
-          dude.direction = Math.random() * Math.PI * 2;
+          dude.direction = Math.random() * Math.PI * 2
 
           // this number will be used to modify the direction of the sprite over time
-          dude.turningSpeed = Math.random() - 0.8;
+          dude.turningSpeed = Math.random() - 0.8
 
           // create a random speed between 0 - 2, and these maggots are slooww
-          dude.speed = (2 + Math.random() * 2) * 0.2;
+          dude.speed = (2 + Math.random() * 2) * 0.2
 
-          dude.offset = Math.random() * 100;
+          dude.offset = Math.random() * 100
 
           // finally we push the dude into the maggots array so it it can be easily accessed later
-          maggots.push(dude);
+          maggots.push(dude)
 
-          sprites.addChild(dude);
+          sprites.addChild(dude)
         }
 
 // create a bounding box box for the little maggots
-        var dudeBoundsPadding = 100;
+        var dudeBoundsPadding = 100
         var dudeBounds = new PIXI.Rectangle(
           -dudeBoundsPadding,
           -dudeBoundsPadding,
           app.renderer.width + dudeBoundsPadding * 2,
           app.renderer.height + dudeBoundsPadding * 2
-        );
+        )
 
-        var tick = 0;
 
-        app.ticker.add(function() {
+
+        var tick = 0
+        app.ticker.add(function () {
 
           // iterate through the sprites and update their position
           for (var i = 0; i < maggots.length; i++) {
 
-            var dude = maggots[i];
-            dude.scale.y = 0.95 + Math.sin(tick + dude.offset) * 0.05;
-            dude.direction += dude.turningSpeed * 0.01;
-            dude.x += Math.sin(dude.direction) * (dude.speed * dude.scale.y);
-            dude.y += Math.cos(dude.direction) * (dude.speed * dude.scale.y);
-            dude.rotation = -dude.direction + Math.PI;
+            var dude = maggots[i]
+            dude.scale.y = 0.95 + Math.sin(tick + dude.offset) * 0.05
+            dude.direction += dude.turningSpeed * 0.01
+            dude.x += Math.sin(dude.direction) * (dude.speed * dude.scale.y)
+            dude.y += Math.cos(dude.direction) * (dude.speed * dude.scale.y)
+            dude.rotation = -dude.direction + Math.PI
 
             // wrap the maggots
             if (dude.x < dudeBounds.x) {
-              dude.x += dudeBounds.width;
+              dude.x += dudeBounds.width
             }
             else if (dude.x > dudeBounds.x + dudeBounds.width) {
-              dude.x -= dudeBounds.width;
+              dude.x -= dudeBounds.width
             }
 
             if (dude.y < dudeBounds.y) {
-              dude.y += dudeBounds.height;
+              dude.y += dudeBounds.height
             }
             else if (dude.y > dudeBounds.y + dudeBounds.height) {
-              dude.y -= dudeBounds.height;
+              dude.y -= dudeBounds.height
             }
           }
 
           // increment the ticker
-          tick += 0.1;
-        });
-
+          tick += 0.1
+        })
+        //this.stats.end()
+        //requestAnimationFrame( this.pixiTest )
       }
-
     },
     mounted: function () {
       // enlarge charting dom to full screen
@@ -289,7 +305,12 @@
       this.drawGlobe()
       this.onUserInput()
       this.currentView = this.globe.orientation()
-       this.pixiTest()
+      this.addStatsMeter()
+      this.pixiTest()
+      //requestAnimationFrame(this.pixiTest)
+
+
+
     }
   }
 </script>
@@ -299,7 +320,7 @@
 d3.geo.(\w)
 d3.geo\U$1\E
 -->
-<style lang="scss" rel="stylesheet/scss" scoped>
+<style lang="scss" rel="stylesheet/scss">
   /*TODO: change to BEM style, next time...*/
   a {
     color: #42b983;
@@ -307,6 +328,13 @@ d3.geo\U$1\E
 
   svg {
     z-index: -100;
+  }
+
+  .fill-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    /*  will-change: transform;*/
   }
 
 </style>
