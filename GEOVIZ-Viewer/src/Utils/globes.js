@@ -349,7 +349,7 @@ export function winkel3 () {
 export const projectionList = {
   atlantis: atlantis,
   azimuthal_equidistant: azimuthalEquidistant,
-  conic_equidistant: conicEquidistant,
+/*  conic_equidistant: conicEquidistant,*/
   equirectangular: equirectangular,
   orthographic: orthographic,
   stereographic: stereographic,
