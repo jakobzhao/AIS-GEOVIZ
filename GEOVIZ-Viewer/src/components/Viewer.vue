@@ -113,7 +113,7 @@
           return globes.projectionList[projectionName](this.params.VIEW)
         } else {return null}
       },
-      drawGlobe: function () {
+      drawGlobe: function (isUpdate) {
         console.log('drawing...')
         this.globe = this.buildGlobe(this.currentProjection)
         // First clear map and foreground svg contents.
@@ -121,7 +121,11 @@
         micro.removeChildren(d3.select('#foreground').node())
         // Create new map svg elements.
         this.globe.defineMap(d3.select('#map'), d3.select('#foreground'))
-
+        if (isUpdate) {
+          let newView = this.currentView.split(',')
+          newView[2] = this.globe.fit(this.params.VIEW)
+          this.currentView = newView.join()
+        }
         this.globe.orientation(this.currentView, this.params.VIEW)
 
         let coastline = d3.select('.coastline')
@@ -315,7 +319,7 @@
         console.log(_.snakeCase(newProjection))
         if (newProjection !== this.currentProjection) {
           this.currentProjection = newProjection
-          this.drawGlobe()
+          this.drawGlobe(true)
           this.onUserInput()
           this.currentView = this.globe.orientation()
         }
