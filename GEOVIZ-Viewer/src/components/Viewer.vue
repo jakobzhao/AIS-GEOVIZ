@@ -1,8 +1,19 @@
 <template>
   <div>
-    <h2 style="color: white">{{currentView}}</h2>
-    <div id="statsMeter"></div>
+
+    <!--    <div>
+          <button class="btn btn-primary" v-for="projection in params.PROJECTION_LIST" :key="projection">{{projection}}&nbsp;</button>
+        </div>-->
+    <div id="debug-info">
+
+      <div>{{currentView.split(',')[0]}}</div>
+      <div>{{currentView.split(',')[1]}}</div>
+      <div>{{currentView.split(',')[2]}}</div>
+      <div id="statsMeter"></div>
+
+    </div>
     <div id="display">
+      <svg class="fill-screen" id="ttt"></svg>
       <svg id="map" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
       <canvas id="animation" class="fill-screen"></canvas>
       <canvas id="overlay" class="fill-screen"></canvas>
@@ -41,7 +52,7 @@
           DEFAULT_SCALE: 450,
           MIN_MOVE: 4,
           MOVE_END_WAIT: 1000,
-          PROJECTION_LIST: globes.projectionList,
+          PROJECTION_LIST: Object.keys(globes.projectionList).map(_.startCase),
           REDRAW_WAIT: 5,
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
           VIEW: micro.view()
@@ -94,7 +105,7 @@
 
       },
       buildGlobe: function (projectionName) {
-        if (Object.keys(this.params.PROJECTION_LIST).indexOf(projectionName) >= 0) {
+        if (this.params.PROJECTION_LIST.indexOf(_.startCase(projectionName)) >= 0) {
           return globes[projectionName]()
         } else {return null}
       },
@@ -194,10 +205,10 @@
 
       },
       pixiTest: function () {
-       // this.stats.begin()
-      //  this.pixiInstance = new PIXI.Application(1200, 800, {antialias: true, transparent: true, resolution: 1})
-        let  app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
-       // this.pixiInstance = app
+        // this.stats.begin()
+        //  this.pixiInstance = new PIXI.Application(1200, 800, {antialias: true, transparent: true, resolution: 1})
+        let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
+        // this.pixiInstance = app
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
         var sprites = new PIXI.particles.ParticleContainer(10000, {
@@ -214,11 +225,11 @@
 
         var totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? 10000 : 100
 
-
         for (var i = 0; i < totalSprites; i++) {
 
           // create a new Sprite
           var dude = PIXI.Sprite.fromImage('static/bg.png')
+          dude.alpha = 0.5
 
           dude.tint = Math.random() * 0xE8D4CD
 
@@ -259,8 +270,6 @@
           app.renderer.width + dudeBoundsPadding * 2,
           app.renderer.height + dudeBoundsPadding * 2
         )
-
-
 
         var tick = 0
         app.ticker.add(function () {
@@ -306,10 +315,8 @@
       this.onUserInput()
       this.currentView = this.globe.orientation()
       this.addStatsMeter()
-      this.pixiTest()
+      //  this.pixiTest()
       //requestAnimationFrame(this.pixiTest)
-
-
 
     }
   }
@@ -322,12 +329,16 @@ d3.geo\U$1\E
 -->
 <style lang="scss" rel="stylesheet/scss">
   /*TODO: change to BEM style, next time...*/
-  a {
-    color: #42b983;
+  #debug-info {
+    position: absolute;
+    color: white;
+
   }
 
-  svg {
-    z-index: -100;
+  #ttt {
+    background-image: url("../assets/cross-bg.png");
+    background-repeat: repeat;
+    opacity: 0.3;
   }
 
   .fill-screen {
