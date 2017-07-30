@@ -1,24 +1,24 @@
 <template>
   <div>
+    <div id="display">
+      <svg class="fill-screen" id="crosshair-background"></svg>
+      <svg id="map" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
+      <canvas id="animation" class="fill-screen"></canvas>
+      <canvas id="overlay" class="fill-screen"></canvas>
+      <svg id="foreground" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
+    </div>
 
-    <!--    <div>
-          <button class="btn btn-primary" v-for="projection in params.PROJECTION_LIST" :key="projection">{{projection}}&nbsp;</button>
-        </div>-->
     <div id="debug-info">
-
+      <div>
+        <button class="btn btn-primary" v-for="projection in params.PROJECTION_LIST" :key="projection">{{projection}}&nbsp;</button>
+      </div>
       <div>{{currentView.split(',')[0]}}</div>
       <div>{{currentView.split(',')[1]}}</div>
       <div>{{currentView.split(',')[2]}}</div>
       <div id="statsMeter"></div>
 
     </div>
-    <div id="display">
-      <svg class="fill-screen" id="ttt"></svg>
-      <svg id="map" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
-      <canvas id="animation" class="fill-screen"></canvas>
-      <canvas id="overlay" class="fill-screen"></canvas>
-      <svg id="foreground" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
-    </div>
+
   </div>
 </template>
 
@@ -335,7 +335,7 @@ d3.geo\U$1\E
 
   }
 
-  #ttt {
+  #crosshair-background {
     background-image: url("../assets/cross-bg.png");
     background-repeat: repeat;
     opacity: 0.3;
