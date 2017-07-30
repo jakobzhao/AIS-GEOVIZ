@@ -207,7 +207,7 @@
       pixiTest: function () {
         // this.stats.begin()
         //  this.pixiInstance = new PIXI.Application(1200, 800, {antialias: true, transparent: true, resolution: 1})
-        let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
+        let app = new PIXI.Application(this.params.VIEW.width/4, this.params.VIEW.height/4, {antialias: true, transparent: true, resolution: 1})
         // this.pixiInstance = app
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
@@ -315,7 +315,7 @@
       this.onUserInput()
       this.currentView = this.globe.orientation()
       this.addStatsMeter()
-      //  this.pixiTest()
+        this.pixiTest()
       //requestAnimationFrame(this.pixiTest)
 
     }
@@ -329,10 +329,14 @@ d3.geo\U$1\E
 -->
 <style lang="scss" rel="stylesheet/scss">
   /*TODO: change to BEM style, next time...*/
+  @import url('https://fonts.googleapis.com/css?family=Ubuntu:500');
+  .btn {
+    font-family: 'Ubuntu', Helvetica, Arial, sans-serif !important;
+  }
+
   #debug-info {
     position: absolute;
     color: white;
-
   }
 
   #crosshair-background {
