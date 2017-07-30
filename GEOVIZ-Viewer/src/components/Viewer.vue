@@ -315,7 +315,9 @@
         console.log(_.snakeCase(newProjection))
         if (newProjection !== this.currentProjection) {
           this.currentProjection = newProjection
-          this.buildGlobe(newProjection)
+          this.drawGlobe()
+          this.onUserInput()
+          this.currentView = this.globe.orientation()
         }
 
       }
