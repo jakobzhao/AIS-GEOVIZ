@@ -354,5 +354,5 @@ export const projectionList = {
   orthographic: orthographic,
   stereographic: stereographic,
   waterman: waterman,
-  winkel3: winkel3
+  winkel_tripel : winkel3
 }
