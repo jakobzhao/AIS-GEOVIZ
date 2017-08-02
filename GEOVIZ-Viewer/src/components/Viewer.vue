@@ -16,6 +16,7 @@
                 @click="changeProjection(projection)">
           {{projection | startCase}}
         </button>
+        <button @click="pixiTest2()">STOP</button>
       </div>
       <div>{{currentView.split(',')[0]}}</div>
       <div>{{currentView.split(',')[1]}}</div>
@@ -49,7 +50,7 @@
     name: 'Viewer',
     data () {
       return {
-        currentProjection: 'winkel_tripel',
+        currentProjection: 'orthographic',
         currentView: '-170, 15, null',
         earthTopo: null,
         globe: null,
@@ -64,7 +65,7 @@
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
           VIEW: micro.view()
         },
-        pixiInstance: null,
+        vesselData: 10,
         stats: null
       }
     },
@@ -267,7 +268,7 @@
 
           // finally we push the dude into the maggots array so it it can be easily accessed later
           maggots.push(dude)
-
+          this.pixiInstance = maggots
           sprites.addChild(dude)
         }
 
@@ -281,11 +282,12 @@
         )
 
         var tick = 0
-        app.ticker.add(function () {
-
+        app.ticker.add( (delta) => {
+          // increment the ticker
+          delta = Math.min(delta, 5)
           // iterate through the sprites and update their position
           for (var i = 0; i < maggots.length; i++) {
-
+       //     console.log(111)
             var dude = maggots[i]
             dude.scale.y = 0.95 + Math.sin(tick + dude.offset) * 0.05
             dude.direction += dude.turningSpeed * 0.01
@@ -309,11 +311,31 @@
             }
           }
 
-          // increment the ticker
-          tick += 0.1
+
         })
         //this.stats.end()
         //requestAnimationFrame( this.pixiTest )
+
+      },
+      pixiTest2: function () {
+        // this.stats.begin()
+        //  this.pixiInstance = new PIXI.Application(1200, 800, {antialias: true, transparent: true, resolution: 1})
+        let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
+        // this.pixiInstance = app
+        document.getElementById('display').appendChild(app.view)
+        app.view.className += 'fill-screen'
+
+        var graphics = new PIXI.Graphics();
+
+// set a fill and line style
+        graphics.lineStyle(4, 0xffd900, 1);
+        graphics.beginFill(0xFFFF0B, 0.5);
+        let projectedXY = this.globe.projection([121,30])
+        console.log(projectedXY)
+        graphics.drawCircle(projectedXY[0], projectedXY[1], 10);
+        graphics.endFill();
+
+        app.stage.addChild(graphics)
       },
       changeProjection: function (newProjection) {
         console.log(_.snakeCase(newProjection))
@@ -334,7 +356,8 @@
       this.onUserInput()
       this.currentView = this.globe.orientation()
       this.addStatsMeter()
-      this.pixiTest()
+    //  this.pixiTest2()
+         this.pixiTest()
       //requestAnimationFrame(this.pixiTest)
     },
     filters: {
