@@ -79,7 +79,7 @@
           [-115.896, 34.794],
           [-97.251, 29.103]
         ],
-        correctedStream: [],
+        correctedStream: null,
         isDrawing: false
       }
     },
@@ -365,11 +365,11 @@
 
           } else {
             console.log(graphics.graphicsData.length)
-              console.log(369)
-              vueInstance.correctedStream.forEach(point => {
-                graphics.drawCircle(point[0], point[1], 10)
-                graphics.endFill()
-              })
+            console.log(369)
+            vueInstance.correctedStream.forEach(point => {
+              graphics.drawCircle(point[0], point[1], 10)
+              graphics.endFill()
+            })
 
           }
         })
@@ -378,16 +378,22 @@
         console.log(d3.geoBounds(this.globe))
       },
       updateVesselRecord: function () {
-        let correctedStream = this.correctedStream
-        let stream = this.globe.projection.stream({
-          point: function (x, y, index, index2) {
-            correctedStream.push([x, y])
-            console.info([x, y])
-            return ([x, y])
-          }
-        })
-        this.testRoute.forEach(point => {
-          stream.point(point[0], point[1], 100)
+        let vueInstance = this
+        let correctedStream = vueInstance.correctedStream
+        correctedStream = new Array(vueInstance.testRoute.length).fill(null)
+
+        //clousre to pass the index
+        let streamWrapper = function (x, y, index) {
+          let stream = vueInstance.globe.projection.stream({
+            point: function (x, y) {
+              correctedStream[index] = [x, y]
+            }
+          })
+          stream.point(x, y)
+        }
+        this.testRoute.forEach((point, index) => {
+          streamWrapper(point[0], point[1], index)
+
         })
         console.log('geoStream clipped points= ')
         console.info(correctedStream)
