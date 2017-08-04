@@ -74,11 +74,22 @@
         testRoute: [
           [121.565, 31.098],
           [139.846, 37.062],
-          [166.213, 36.921],
-          [-122.702, 43.547],
-          [-115.896, 34.794],
-          [-97.251, 29.103]
+          [155.213, 36.921],
+          [168.702, 43.547],
+          [-163.896, 34.794],
+          [-142.251, 29.103]
         ],
+        testPath: {
+          type: 'LineString',
+          coordinates: [
+            [121.565, 31.098],
+            [139.846, 37.062],
+            [166.213, 36.921],
+            [-122.702, 43.547],
+            [-115.896, 34.794],
+            [-97.251, 29.103]
+          ],
+        },
         correctedStream: null,
         isDrawing: false
       }
@@ -349,29 +360,38 @@
 
         var graphics = new PIXI.Graphics()
         graphics.lineStyle(4, 0xffd900, 1)
-        graphics.beginFill(0xFFFF0B, 0.5)
+      //  graphics.beginFill(0xFFFF0B, 0.5)
         console.info('graphic children= ' + graphics.children)
 // set a fill and line style
 
-        this.updateVesselRecord()
+        vueInstance.updateVesselRecord()
 
         app.ticker.add((delta) => {
           // increment the ticker
           delta = Math.min(delta, 5)
-          if (!vueInstance.isDrawing) {
-            console.log(359)
-            graphics.clear()
-            // graphics.destroy()
+          /*          if (!vueInstance.isDrawing) {
+                      console.log(359)
+                      graphics.clear()
+                      // graphics.destroy()
 
-          } else {
-            console.log(graphics.graphicsData.length)
-            console.log(369)
-            vueInstance.correctedStream.forEach(point => {
-              graphics.drawCircle(point[0], point[1], 10)
-              graphics.endFill()
-            })
+                    } else {*/
+          //         console.log(graphics.graphicsData.length)
+          //      console.log(369)
+          let counter = 0
+          vueInstance.correctedStream.forEach((point, index) => {
+            if (point !== null) {
+              if (counter === 0) {
+                graphics.moveTo(point[0], point[1])
+              }
+              graphics.lineTo(point[0], point[1])
+              counter += 1
+              if (index === vueInstance.correctedStream.length - 1) {
+                graphics.endFill()
+              }
+            }
+          })
 
-          }
+          //   }
         })
 
         app.stage.addChild(graphics)
@@ -397,6 +417,7 @@
         })
         console.log('geoStream clipped points= ')
         console.info(correctedStream)
+        this.correctedStream = correctedStream
       },
       changeProjection: function (newProjection) {
         console.log(_.snakeCase(newProjection))
@@ -418,7 +439,7 @@
       this.currentView = this.globe.orientation()
       this.addStatsMeter()
       //  this.pixiTest2()
-      this.pixiTest()
+      //  this.pixiTest()
       //requestAnimationFrame(this.pixiTest)
 
     },
