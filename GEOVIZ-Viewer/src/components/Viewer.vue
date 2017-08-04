@@ -10,13 +10,17 @@
 
     <div id="debug-info">
       <div>
+
         <button class="btn btn-primary"
                 v-for="projection in params.PROJECTION_LIST"
                 :key="projection"
                 @click="changeProjection(projection)">
           {{projection | startCase}}
         </button>
-        <button @click="pixiTest2()">STOP</button>
+        <button @click="pixiTest2()">Create Circle</button>
+        <button @click="updateVesselRecord()">UpdateData</button>
+        <button @click="toggleDrawing()">toggle drawing</button>
+        {{isDrawing}}
       </div>
       <div>{{currentView.split(',')[0]}}</div>
       <div>{{currentView.split(',')[1]}}</div>
@@ -66,7 +70,17 @@
           VIEW: micro.view()
         },
         vesselData: 10,
-        stats: null
+        stats: null,
+        testRoute: [
+          [121.565, 31.098],
+          [139.846, 37.062],
+          [166.213, 36.921],
+          [-122.702, 43.547],
+          [-115.896, 34.794],
+          [-97.251, 29.103]
+        ],
+        correctedStream: [],
+        isDrawing: false
       }
     },
     computed: {
@@ -79,6 +93,9 @@
       }
     },
     methods: {
+      toggleDrawing: function () {
+        this.isDrawing = !this.isDrawing
+      },
       setEarthTopo: function () {
         this.isMobile = micro.isMobile()
         let isMobile = this.isMobile
@@ -140,6 +157,9 @@
         let coastline = d3.select('.coastline')
         let lakes = d3.select('.lakes')
 
+        // somehow 'this' is not binded to element so we have to manually set it
+        let displayDiv = document.getElementById('display')
+
         function newOp (startMouse, startScale) {
           return {
             type: 'click',  // initially assumed to be a click operation
@@ -154,7 +174,7 @@
           .on('start', () => {
             //TODO: temp set scale to 1
             //TODO: show find a better to way to use 'this === #display' here
-            op = op || newOp(d3.mouse(document.getElementById('display')), /*zoom.scale()*/ d3.zoomTransform(document.getElementById('display')).k)  // a new operation begins
+            op = op || newOp(d3.mouse(displayDiv), /*zoom.scale()*/ d3.zoomTransform(displayDiv).k)  // a new operation begins
             console.log('started')
 
             // replace path with low-res data
@@ -164,11 +184,11 @@
           })
           .on('zoom', () => {
             console.log('zooming...')
-            let currentMouse = d3.mouse(document.getElementById('display'))
+            let currentMouse = d3.mouse(displayDiv)
             // console.log(currentMouse)
             //TODO: temp set scale to 1
             // let currentZoomRatio = d3.event.scale
-            let currentZoomRatio = d3.zoomTransform(document.getElementById('display')).k
+            let currentZoomRatio = d3.zoomTransform(displayDiv).k
             // currentZoomRatio = currentZoomRatio === 1 ? this.currentZoomRatio - 0.1 : currentZoomRatio
             // console.log('current Scale= ' + currentZoomRatio)
             op = op || newOp(currentMouse, 10)  // Fix bug on some browsers where zoomstart fires out of order.
@@ -281,15 +301,13 @@
           app.renderer.height + dudeBoundsPadding * 2
         )
 
-        var tick = 0
-        app.ticker.add( (delta) => {
+        app.ticker.add((delta) => {
           // increment the ticker
           delta = Math.min(delta, 5)
           // iterate through the sprites and update their position
           for (var i = 0; i < maggots.length; i++) {
-       //     console.log(111)
             var dude = maggots[i]
-            dude.scale.y = 0.95 + Math.sin(tick + dude.offset) * 0.05
+            dude.scale.y = 0.95 + Math.sin(delta + dude.offset) * 0.05
             dude.direction += dude.turningSpeed * 0.01
             dude.x += Math.sin(dude.direction) * (dude.speed * dude.scale.y)
             dude.y += Math.cos(dude.direction) * (dude.speed * dude.scale.y)
@@ -310,9 +328,8 @@
               dude.y -= dudeBounds.height
             }
           }
-
-
         })
+        app.ticker.speed = 1
         //this.stats.end()
         //requestAnimationFrame( this.pixiTest )
 
@@ -320,22 +337,58 @@
       pixiTest2: function () {
         // this.stats.begin()
         //  this.pixiInstance = new PIXI.Application(1200, 800, {antialias: true, transparent: true, resolution: 1})
+        let vueInstance = this
+        d3.select('#pixiTest').remove()
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
         // this.pixiInstance = app
+        app.view.id = 'pixiTest'
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
 
-        var graphics = new PIXI.Graphics();
-
+        var graphics = new PIXI.Graphics()
+        graphics.lineStyle(4, 0xffd900, 1)
+        graphics.beginFill(0xFFFF0B, 0.5)
+        console.info('graphic children= ' + graphics.children)
 // set a fill and line style
-        graphics.lineStyle(4, 0xffd900, 1);
-        graphics.beginFill(0xFFFF0B, 0.5);
-        let projectedXY = this.globe.projection([121,30])
-        console.log(projectedXY)
-        graphics.drawCircle(projectedXY[0], projectedXY[1], 10);
-        graphics.endFill();
+
+        this.updateVesselRecord()
+
+        app.ticker.add((delta) => {
+          // increment the ticker
+          delta = Math.min(delta, 5)
+          if (!vueInstance.isDrawing) {
+            console.log(359)
+            graphics.clear()
+            // graphics.destroy()
+
+          } else {
+            console.log(graphics.graphicsData.length)
+              console.log(369)
+              vueInstance.correctedStream.forEach(point => {
+                graphics.drawCircle(point[0], point[1], 10)
+                graphics.endFill()
+              })
+
+          }
+        })
 
         app.stage.addChild(graphics)
+        console.log(d3.geoBounds(this.globe))
+      },
+      updateVesselRecord: function () {
+        let correctedStream = this.correctedStream
+        let stream = this.globe.projection.stream({
+          point: function (x, y, index, index2) {
+            correctedStream.push([x, y])
+            console.info([x, y])
+            return ([x, y])
+          }
+        })
+        this.testRoute.forEach(point => {
+          stream.point(point[0], point[1], 100)
+        })
+        console.log('geoStream clipped points= ')
+        console.info(correctedStream)
       },
       changeProjection: function (newProjection) {
         console.log(_.snakeCase(newProjection))
@@ -355,9 +408,9 @@
       this.drawGlobe()
       this.onUserInput()
       this.currentView = this.globe.orientation()
-      this.addStatsMeter()
-    //  this.pixiTest2()
-         this.pixiTest()
+      //  this.addStatsMeter()
+      //  this.pixiTest2()
+      this.pixiTest()
       //requestAnimationFrame(this.pixiTest)
     },
     filters: {
