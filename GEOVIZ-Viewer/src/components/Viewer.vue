@@ -237,7 +237,7 @@
       pixiTest: function () {
         // this.stats.begin()
         //  this.pixiInstance = new PIXI.Application(1200, 800, {antialias: true, transparent: true, resolution: 1})
-        let app = new PIXI.Application(this.params.VIEW.width / 4, this.params.VIEW.height / 4, {antialias: true, transparent: true, resolution: 1})
+        let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
         // this.pixiInstance = app
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
@@ -302,6 +302,7 @@
         )
 
         app.ticker.add((delta) => {
+          this.stats.begin()
           // increment the ticker
           delta = Math.min(delta, 5)
           // iterate through the sprites and update their position
@@ -328,9 +329,10 @@
               dude.y -= dudeBounds.height
             }
           }
+          this.stats.end()
         })
         app.ticker.speed = 1
-        //this.stats.end()
+
         //requestAnimationFrame( this.pixiTest )
 
       },
@@ -408,10 +410,11 @@
       this.drawGlobe()
       this.onUserInput()
       this.currentView = this.globe.orientation()
-      //  this.addStatsMeter()
+      this.addStatsMeter()
       //  this.pixiTest2()
       this.pixiTest()
       //requestAnimationFrame(this.pixiTest)
+
     },
     filters: {
       startCase: function (value) {
