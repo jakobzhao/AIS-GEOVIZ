@@ -70,7 +70,7 @@
           VIEW: micro.view()
         },
         vesselData: 10,
-        stats: null,
+        stats: null, // stats meter
         testRoute: [
           [121.565, 31.098],
           [139.846, 37.062],
@@ -91,7 +91,7 @@
           ],
         },
         correctedStream: null,
-        isDrawing: false
+        isDrawing: true
       }
     },
     computed: {
@@ -192,6 +192,7 @@
             coastline.datum(this.earthTopo.coastLo)
             lakes.datum(this.earthTopo.lakesLo)
             d3.selectAll('path').attr('d', this.path)
+            this.isDrawing = false
           })
           .on('zoom', () => {
             console.log('zooming...')
@@ -240,6 +241,8 @@
 
             }
             op = null  // the drag/zoom/click operation is over
+
+            this.isDrawing = true
           })
 
         d3.select('#display').call(zoom)
@@ -317,27 +320,29 @@
           // increment the ticker
           delta = Math.min(delta, 5)
           // iterate through the sprites and update their position
-          for (var i = 0; i < maggots.length; i++) {
-            var dude = maggots[i]
-            dude.scale.y = 0.95 + Math.sin(delta + dude.offset) * 0.05
-            dude.direction += dude.turningSpeed * 0.01
-            dude.x += Math.sin(dude.direction) * (dude.speed * dude.scale.y)
-            dude.y += Math.cos(dude.direction) * (dude.speed * dude.scale.y)
-            dude.rotation = -dude.direction + Math.PI
+          if (this.isDrawing) {
+            for (var i = 0; i < maggots.length; i++) {
+              var dude = maggots[i]
+              dude.scale.y = 0.95 + Math.sin(delta + dude.offset) * 0.05
+              dude.direction += dude.turningSpeed * 0.01
+              dude.x += Math.sin(dude.direction) * (dude.speed * dude.scale.y)
+              dude.y += Math.cos(dude.direction) * (dude.speed * dude.scale.y)
+              dude.rotation = -dude.direction + Math.PI
 
-            // wrap the maggots
-            if (dude.x < dudeBounds.x) {
-              dude.x += dudeBounds.width
-            }
-            else if (dude.x > dudeBounds.x + dudeBounds.width) {
-              dude.x -= dudeBounds.width
-            }
+              // wrap the maggots
+              if (dude.x < dudeBounds.x) {
+                dude.x += dudeBounds.width
+              }
+              else if (dude.x > dudeBounds.x + dudeBounds.width) {
+                dude.x -= dudeBounds.width
+              }
 
-            if (dude.y < dudeBounds.y) {
-              dude.y += dudeBounds.height
-            }
-            else if (dude.y > dudeBounds.y + dudeBounds.height) {
-              dude.y -= dudeBounds.height
+              if (dude.y < dudeBounds.y) {
+                dude.y += dudeBounds.height
+              }
+              else if (dude.y > dudeBounds.y + dudeBounds.height) {
+                dude.y -= dudeBounds.height
+              }
             }
           }
           this.stats.end()
@@ -461,7 +466,7 @@
       this.currentView = this.globe.orientation()
       this.addStatsMeter()
       //  this.pixiTest2()
-      //  this.pixiTest()
+        this.pixiTest()
       //requestAnimationFrame(this.pixiTest)
 
     },
