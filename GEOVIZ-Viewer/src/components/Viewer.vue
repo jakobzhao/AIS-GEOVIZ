@@ -20,12 +20,13 @@
         <button @click="pixiTest2()">Create Circle</button>
         <button @click="updateVesselRecord()">UpdateData</button>
         <button @click="toggleDrawing()">toggle drawing</button>
-        {{isDrawing}}
+
       </div>
-      <div>{{currentView.split(',')[0]}}</div>
-      <div>{{currentView.split(',')[1]}}</div>
-      <div>{{currentView.split(',')[2]}}</div>
-      <div>{{currentProjection}}</div>
+      <div>Long: {{info.currentView.split(',')[0]}}</div>
+      <div>Later: {{info.currentView.split(',')[1]}}</div>
+      <div>Scale: {{info.currentView.split(',')[2]}}</div>
+      <div>Projection: {{info.currentProjection}}</div>
+      <div>info.isDrawing: {{info.isDrawing}}</div>
       <div id="statsMeter"></div>
 
     </div>
@@ -54,11 +55,12 @@
     name: 'Viewer',
     data () {
       return {
-        currentProjection: 'orthographic',
-        currentView: '-170, 15, null',
-        earthTopo: null,
-        globe: null,
-        isMobile: false,
+        info: {
+          currentProjection: 'orthographic',
+          currentView: '-170, 15, null',
+          isDrawing: true,
+          isMobile: false,
+        },
         params: {
           DEBOUNCE_WAIT: 500,
           DEFAULT_SCALE: 450,
@@ -69,7 +71,8 @@
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
           VIEW: micro.view()
         },
-        vesselData: 10,
+        earthTopo: null,
+        globe: null,
         stats: null, // stats meter
         testRoute: [
           [121.565, 31.098],
@@ -91,7 +94,6 @@
           ],
         },
         correctedStream: null,
-        isDrawing: true
       }
     },
     computed: {
@@ -99,18 +101,18 @@
         return d3.geoPath().projection(this.globe.projection).pointRadius(7)
       },
       currentScale: function () {
-        // return (this.currentView.split(','))[2] === null ? 1 : (this.currentView.split(','))[2]
+        // return (this.info.currentView.split(','))[2] === null ? 1 : (this.info.currentView.split(','))[2]
         return this.globe.projection.scale()
       }
     },
     methods: {
       toggleDrawing: function () {
-        this.isDrawing = !this.isDrawing
+        this.info.isDrawing = !this.info.isDrawing
       },
       setEarthTopo: function () {
-        this.isMobile = micro.isMobile()
-        let isMobile = this.isMobile
-        if (this.isMobile) {
+        this.info.isMobile = micro.isMobile()
+        let isMobile = this.info.isMobile
+        if (this.info.isMobile) {
           this.earthTopo = this.prepTopoMesh(earthTopoMobile, isMobile)
         } else {
           this.earthTopo = this.prepTopoMesh(earthTopoPC, isMobile)
@@ -144,18 +146,18 @@
       },
       drawGlobe: function (isUpdate) {
         console.log('drawing...')
-        this.globe = this.buildGlobe(this.currentProjection)
+        this.globe = this.buildGlobe(this.info.currentProjection)
         // First clear map and foreground svg contents.
         micro.removeChildren(d3.select('#map').node())
         micro.removeChildren(d3.select('#foreground').node())
         // Create new map svg elements.
         this.globe.defineMap(d3.select('#map'), d3.select('#foreground'))
         if (isUpdate) {
-          let newView = this.currentView.split(',')
+          let newView = this.info.currentView.split(',')
           newView[2] = this.globe.fit(this.params.VIEW)
-          this.currentView = newView.join()
+          this.info.currentView = newView.join()
         }
-        this.globe.orientation(this.currentView, this.params.VIEW)
+        this.globe.orientation(this.info.currentView, this.params.VIEW)
 
         let coastline = d3.select('.coastline')
         let lakes = d3.select('.lakes')
@@ -192,7 +194,7 @@
             coastline.datum(this.earthTopo.coastLo)
             lakes.datum(this.earthTopo.lakesLo)
             d3.selectAll('path').attr('d', this.path)
-            this.isDrawing = false
+            this.info.isDrawing = false
           })
           .on('zoom', () => {
             console.log('zooming...')
@@ -222,14 +224,14 @@
             console.log('op type= ' + op.type)
             // console.log('for real ' + op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio)
             op.manipulator.move(op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio * vueViewer.currentScale)
-            this.currentView = this.globe.orientation()
+            this.info.currentView = this.globe.orientation()
 
             d3.selectAll('path').attr('d', this.path)
           })
           .on('end', () => {
             console.log('ended')
-            this.currentView = this.globe.orientation()
-            console.log(this.currentView)
+            this.info.currentView = this.globe.orientation()
+            console.log(this.info.currentView)
             coastline.datum(this.earthTopo.coastHi)
             lakes.datum(this.earthTopo.lakesHi)
             d3.selectAll('path').attr('d', this.path)
@@ -242,7 +244,7 @@
             }
             op = null  // the drag/zoom/click operation is over
 
-            this.isDrawing = true
+            this.info.isDrawing = true
           })
 
         d3.select('#display').call(zoom)
@@ -320,7 +322,7 @@
           // increment the ticker
           delta = Math.min(delta, 5)
           // iterate through the sprites and update their position
-          if (this.isDrawing) {
+          if (this.info.isDrawing) {
             for (var i = 0; i < maggots.length; i++) {
               var dude = maggots[i]
               dude.scale.y = 0.95 + Math.sin(delta + dude.offset) * 0.05
@@ -374,7 +376,7 @@
         app.ticker.add((delta) => {
           // increment the ticker
           delta = Math.min(delta, 5)
-          /*          if (!vueInstance.isDrawing) {
+          /*          if (!vueInstance.info.isDrawing) {
                       console.log(359)
                       graphics.clear()
                       // graphics.destroy()
@@ -448,11 +450,11 @@
       },
       changeProjection: function (newProjection) {
         console.log(_.snakeCase(newProjection))
-        if (newProjection !== this.currentProjection) {
-          this.currentProjection = newProjection
+        if (newProjection !== this.info.currentProjection) {
+          this.info.currentProjection = newProjection
           this.drawGlobe(true)
           this.onUserInput()
-          this.currentView = this.globe.orientation()
+          this.info.currentView = this.globe.orientation()
         }
 
       }
@@ -463,7 +465,7 @@
       this.setEarthTopo()
       this.drawGlobe()
       this.onUserInput()
-      this.currentView = this.globe.orientation()
+      this.info.currentView = this.globe.orientation()
       this.addStatsMeter()
       //  this.pixiTest2()
         this.pixiTest()
