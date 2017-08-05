@@ -395,7 +395,7 @@
         })
 
         // disable to test geoPath TODO
-     //   app.stage.addChild(graphics)
+        app.stage.addChild(graphics)
         console.log(d3.geoBounds(this.globe))
 
         //another test
@@ -404,6 +404,7 @@
 
         var context1 = canvas1.getContext("2d");
         var ppath = vueInstance.path.context(context1)
+        var pppath = vueInstance.path.context(null)
         let aaa = function (path, context) {
           context.lineWidth = 5;
           context.strokeStyle = "rgba(255,255,255,.7)";
@@ -412,6 +413,7 @@
           context.stroke();
         }
        aaa(ppath, context1)
+        console.info(pppath(vueInstance.testPath))
 
 
 
@@ -431,7 +433,7 @@
           })
           stream.point(x, y)
         }
-        this.testRoute.forEach((point, index) => {
+        this.testPath.coordinates.forEach((point, index) => {
           streamWrapper(point[0], point[1], index)
 
         })
