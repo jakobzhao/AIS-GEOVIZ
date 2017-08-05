@@ -394,8 +394,28 @@
           //   }
         })
 
-        app.stage.addChild(graphics)
+        // disable to test geoPath TODO
+     //   app.stage.addChild(graphics)
         console.log(d3.geoBounds(this.globe))
+
+        //another test
+
+        var canvas1 = document.getElementById("overlay");
+
+        var context1 = canvas1.getContext("2d");
+        var ppath = vueInstance.path.context(context1)
+        let aaa = function (path, context) {
+          context.lineWidth = 5;
+          context.strokeStyle = "rgba(255,255,255,.7)";
+          context.beginPath();
+          path(vueInstance.testPath);
+          context.stroke();
+        }
+       aaa(ppath, context1)
+
+
+
+
       },
       updateVesselRecord: function () {
         let vueInstance = this
