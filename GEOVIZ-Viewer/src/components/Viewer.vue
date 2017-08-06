@@ -5,6 +5,8 @@
       <svg id="map" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
       <canvas id="animation" class="fill-screen"></canvas>
       <canvas id="overlay" class="fill-screen"></canvas>
+      <canvas id="geoStreamTest" class="fill-screen"></canvas>
+      <canvas id="geoPathTest" class="fill-screen"></canvas>
       <svg id="foreground" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
     </div>
 
@@ -17,7 +19,7 @@
                 @click="changeProjection(projection)">
           {{projection | startCase}}
         </button>
-        <button @click="pixiTest2()">Create Circle</button>
+        <button @click="geoStreamTest()">Create Circle</button>
         <button @click="updateVesselRecordTest()">UpdateData</button>
         <button @click="toggleDrawing()">Toggle drawing</button>
 
@@ -241,7 +243,7 @@
           })
         d3.select('#display').call(zoom)
       },
-      pixiTest: function () {
+      pixiWormBox: function () {
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
@@ -339,71 +341,45 @@
         })
         app.ticker.speed = 1
 
-        //requestAnimationFrame( this.pixiTest )
+        //requestAnimationFrame( this.pixiWormBox )
 
       },
-      pixiTest2: function () {
+      geoStreamTest: function () {
         let vueInstance = this
-        d3.select('#pixiTest').remove()
-        let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
-        app.view.id = 'pixiTest'
-        document.getElementById('display').appendChild(app.view)
-        app.view.className += 'fill-screen'
-
-        let graphics = new PIXI.Graphics()
-        graphics.lineStyle(4, 0xffd900, 1)
-
-        console.info('graphic children= ' + graphics.children)
+        // drawing using geoStream
+        let context = document.getElementById('geoStreamTest').getContext('2d')
+        context.clearRect(0, 0, vueInstance.params.VIEW.width, vueInstance.params.VIEW.height)
+        context.strokeStyle = 'rgba(245, 90, 92, 0.7)'
+        context.lineWidth = 7
 
         vueInstance.updateVesselRecordTest()
 
-        app.ticker.add((delta) => {
-          // increment the ticker
-          delta = Math.min(delta, 5)
-          /*          if (!vueInstance.info.isDrawing) {
-                      console.log(359)
-                      graphics.clear()
-                      // graphics.destroy()
-
-                    } else {*/
-          //         console.log(graphics.graphicsData.length)
-          //      console.log(369)
-          let counter = 0
-          vueInstance.correctedStream.forEach((point, index) => {
-            if (point !== null) {
-              if (counter === 0) {
-                graphics.moveTo(point[0], point[1])
-              }
-              graphics.lineTo(point[0], point[1])
-              counter += 1
-              if (index === vueInstance.correctedStream.length - 1) {
-                graphics.endFill()
-              }
-            }
-          })
-
-          //   }
+        context.beginPath()
+        vueInstance.correctedStream.forEach((point, index) => {
+          if (index === 0) {
+            context.moveTo(point[0], point[1])
+          } else {
+            context.lineTo(point[0], point[1])
+          }
         })
+        context.stroke()
 
-        // disable to test geoPath TODO
-        app.stage.addChild(graphics)
-        console.log(d3.geoBounds(this.globe))
+        // drawing using geoPath
+        let context2 = document.getElementById('geoPathTest').getContext('2d')
+        context2.clearRect(0, 0, vueInstance.params.VIEW.width, vueInstance.params.VIEW.height)
+        let geoPath = vueInstance.path.context(context2)
 
-        //another test
-        var canvas1 = document.getElementById('overlay')
-
-        var context1 = canvas1.getContext('2d')
-        var ppath = vueInstance.path.context(context1)
-        var pppath = vueInstance.path.context(null)
-        let aaa = function (path, context) {
-          context.lineWidth = 5
-          context.strokeStyle = 'rgba(255,255,255,.7)'
+        let drawGeoPath = function (path, context) {
+          console.log('now drawing')
+          context.lineWidth = 7
+          context.strokeStyle = 'rgba(71, 192, 180, 0.7)'
           context.beginPath()
           path(vueInstance.testPath)
           context.stroke()
         }
-        aaa(ppath, context1)
-        console.info(pppath(vueInstance.testPath))
+        drawGeoPath(geoPath, context2)
+        let svgGeoPath = vueInstance.path.context(null)
+        console.info(svgGeoPath(vueInstance.testPath))
       },
       updateVesselRecordTest: function () {
         let vueInstance = this
@@ -455,8 +431,7 @@
       this.onUserInput()
       this.info.currentView = this.globe.orientation()
       this.addStatsMeter()
-      //  this.pixiTest2()
-      this.pixiTest()
+      this.pixiWormBox()
     },
     filters: {
       startCase: function (value) {
