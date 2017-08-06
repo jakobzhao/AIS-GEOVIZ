@@ -12,7 +12,6 @@
 
     <div id="debug-info">
       <div>
-
         <button class="btn btn-primary"
                 v-for="projection in params.PROJECTION_LIST"
                 :key="projection"
@@ -22,6 +21,7 @@
         <button @click="geoStreamTest()">Line Test</button>
         <button @click="updateVesselRecordTest()">UpdateData</button>
         <button @click="toggleDrawing()">Toggle drawing</button>
+        <button @click="pixiWormBox()">Open W-box </button>
 
       </div>
       <div>Long: {{info.currentView.split(',')[0]}}</div>
@@ -30,7 +30,6 @@
       <div>Projection: {{info.currentProjection}}</div>
       <div>info.isDrawing: {{info.isDrawing}}</div>
       <div id="statsMeter"></div>
-
     </div>
 
   </div>
@@ -39,7 +38,6 @@
 <script>
   import _ from 'lodash'
   import ES6promise from 'es6-promise'
-
   ES6promise.polyfill()
   import axios from 'axios'
   import Promise from 'bluebird'
@@ -264,7 +262,7 @@
         for (let i = 0; i < totalSprites; i++) {
 
           // create a new Sprite
-          let dude = PIXI.Sprite.fromImage('static/bg.png')
+          let dude = PIXI.Sprite.fromImage('static/maggot.png')
           dude.alpha = 0.5
 
           dude.tint = Math.random() * 0xE8D4CD
