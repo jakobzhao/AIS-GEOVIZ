@@ -247,7 +247,7 @@
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
-        var sprites = new PIXI.particles.ParticleContainer(10000, {
+        let sprites = new PIXI.particles.ParticleContainer(10000, {
           scale: true,
           position: true,
           rotation: true,
@@ -257,14 +257,14 @@
         app.stage.addChild(sprites)
 
 // create an array to store all the sprites
-        var maggots = []
+        let maggots = []
 
-        var totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? 10000 : 100
+        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? 10000 : 100
 
-        for (var i = 0; i < totalSprites; i++) {
+        for (let i = 0; i < totalSprites; i++) {
 
           // create a new Sprite
-          var dude = PIXI.Sprite.fromImage('static/bg.png')
+          let dude = PIXI.Sprite.fromImage('static/bg.png')
           dude.alpha = 0.5
 
           dude.tint = Math.random() * 0xE8D4CD
@@ -299,8 +299,8 @@
         }
 
 // create a bounding box box for the little maggots
-        var dudeBoundsPadding = 100
-        var dudeBounds = new PIXI.Rectangle(
+        let dudeBoundsPadding = 100
+        let dudeBounds = new PIXI.Rectangle(
           -dudeBoundsPadding,
           -dudeBoundsPadding,
           app.renderer.width + dudeBoundsPadding * 2,
@@ -313,8 +313,9 @@
           delta = Math.min(delta, 5)
           // iterate through the sprites and update their position
           if (this.info.isDrawing) {
-            for (var i = 0; i < maggots.length; i++) {
-              var dude = maggots[i]
+            sprites.visible = true
+            for (let i = 0; i < maggots.length; i++) {
+              let dude = maggots[i]
               dude.scale.y = 0.95 + Math.sin(delta + dude.offset) * 0.05
               dude.direction += dude.turningSpeed * 0.01
               dude.x += Math.sin(dude.direction) * (dude.speed * dude.scale.y)
@@ -336,6 +337,8 @@
                 dude.y -= dudeBounds.height
               }
             }
+          } else {
+            sprites.visible = false
           }
           this.stats.end()
         })
@@ -431,7 +434,7 @@
       this.onUserInput()
       this.info.currentView = this.globe.orientation()
       this.addStatsMeter()
-      this.pixiWormBox()
+      //this.pixiWormBox()
     },
     filters: {
       startCase: function (value) {
