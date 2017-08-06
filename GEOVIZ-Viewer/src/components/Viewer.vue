@@ -18,8 +18,8 @@
           {{projection | startCase}}
         </button>
         <button @click="pixiTest2()">Create Circle</button>
-        <button @click="updateVesselRecord()">UpdateData</button>
-        <button @click="toggleDrawing()">toggle drawing</button>
+        <button @click="updateVesselRecordTest()">UpdateData</button>
+        <button @click="toggleDrawing()">Toggle drawing</button>
 
       </div>
       <div>Long: {{info.currentView.split(',')[0]}}</div>
@@ -93,7 +93,7 @@
             [-97.251, 29.103]
           ],
         },
-        correctedStream: null,
+        correctedStream: [],
       }
     },
     computed: {
@@ -106,6 +106,14 @@
       }
     },
     methods: {
+      addStatsMeter: function () {
+        this.stats = new Stats()
+        this.stats.domElement.style.position = 'absolute'
+        this.stats.domElement.style.top = '0px'
+        //document.getElementsByName('#statsMeter').appendChild(this.stats.domElement)
+        document.body.appendChild(this.stats.domElement)
+
+      },
       toggleDrawing: function () {
         this.info.isDrawing = !this.info.isDrawing
       },
@@ -130,14 +138,6 @@
           lakesLo: lakesLo,
           lakesHi: lakesHi
         }
-      },
-      addStatsMeter: function () {
-        this.stats = new Stats()
-        this.stats.domElement.style.position = 'absolute'
-        this.stats.domElement.style.top = '0px'
-        //document.getElementsByName('#statsMeter').appendChild(this.stats.domElement)
-        document.body.appendChild(this.stats.domElement)
-
       },
       buildGlobe: function (projectionName) {
         if (this.params.PROJECTION_LIST.indexOf(projectionName) >= 0) {
@@ -169,8 +169,6 @@
         let vueViewer = this
         let coastline = d3.select('.coastline')
         let lakes = d3.select('.lakes')
-
-        // somehow 'this' is not binded to element so we have to manually set it
         let displayDiv = document.getElementById('display')
 
         function newOp (startMouse, startScale) {
@@ -185,26 +183,23 @@
         let op = null
         let zoom = d3.zoom()
           .on('start', () => {
-            //TODO: temp set scale to 1
-            //TODO: show find a better to way to use 'this === #display' here
+            this.info.isDrawing = false
+
             op = op || newOp(d3.mouse(displayDiv), /*zoom.scale()*/ d3.zoomTransform(displayDiv).k)  // a new operation begins
-            console.log('started')
+            console.log('zoom started')
 
             // replace path with low-res data
             coastline.datum(this.earthTopo.coastLo)
             lakes.datum(this.earthTopo.lakesLo)
             d3.selectAll('path').attr('d', this.path)
-            this.info.isDrawing = false
+
           })
           .on('zoom', () => {
             console.log('zooming...')
             let currentMouse = d3.mouse(displayDiv)
-            // console.log(currentMouse)
-            //TODO: temp set scale to 1
-            // let currentZoomRatio = d3.event.scale
             let currentZoomRatio = d3.zoomTransform(displayDiv).k
-            // currentZoomRatio = currentZoomRatio === 1 ? this.currentZoomRatio - 0.1 : currentZoomRatio
             // console.log('current Scale= ' + currentZoomRatio)
+
             op = op || newOp(currentMouse, 10)  // Fix bug on some browsers where zoomstart fires out of order.
             if (op.type === 'click' || op.type === 'spurious') {
               let distanceMoved = micro.distance(currentMouse, op.startMouse)
@@ -225,13 +220,12 @@
             // console.log('for real ' + op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio)
             op.manipulator.move(op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio * vueViewer.currentScale)
             this.info.currentView = this.globe.orientation()
-
             d3.selectAll('path').attr('d', this.path)
           })
           .on('end', () => {
             console.log('ended')
             this.info.currentView = this.globe.orientation()
-            console.log(this.info.currentView)
+
             coastline.datum(this.earthTopo.coastHi)
             lakes.datum(this.earthTopo.lakesHi)
             d3.selectAll('path').attr('d', this.path)
@@ -240,21 +234,15 @@
             if (op.type === 'click') {
             }
             else if (op.type !== 'spurious') {
-
             }
             op = null  // the drag/zoom/click operation is over
 
             this.info.isDrawing = true
           })
-
         d3.select('#display').call(zoom)
-
       },
       pixiTest: function () {
-        // this.stats.begin()
-        //  this.pixiInstance = new PIXI.Application(1200, 800, {antialias: true, transparent: true, resolution: 1})
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
-        // this.pixiInstance = app
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
         var sprites = new PIXI.particles.ParticleContainer(10000, {
@@ -355,23 +343,19 @@
 
       },
       pixiTest2: function () {
-        // this.stats.begin()
-        //  this.pixiInstance = new PIXI.Application(1200, 800, {antialias: true, transparent: true, resolution: 1})
         let vueInstance = this
         d3.select('#pixiTest').remove()
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
-        // this.pixiInstance = app
         app.view.id = 'pixiTest'
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
 
-        var graphics = new PIXI.Graphics()
+        let graphics = new PIXI.Graphics()
         graphics.lineStyle(4, 0xffd900, 1)
-      //  graphics.beginFill(0xFFFF0B, 0.5)
-        console.info('graphic children= ' + graphics.children)
-// set a fill and line style
 
-        vueInstance.updateVesselRecord()
+        console.info('graphic children= ' + graphics.children)
+
+        vueInstance.updateVesselRecordTest()
 
         app.ticker.add((delta) => {
           // increment the ticker
@@ -406,57 +390,61 @@
         console.log(d3.geoBounds(this.globe))
 
         //another test
+        var canvas1 = document.getElementById('overlay')
 
-        var canvas1 = document.getElementById("overlay");
-
-        var context1 = canvas1.getContext("2d");
+        var context1 = canvas1.getContext('2d')
         var ppath = vueInstance.path.context(context1)
         var pppath = vueInstance.path.context(null)
         let aaa = function (path, context) {
-          context.lineWidth = 5;
-          context.strokeStyle = "rgba(255,255,255,.7)";
-          context.beginPath();
-          path(vueInstance.testPath);
-          context.stroke();
+          context.lineWidth = 5
+          context.strokeStyle = 'rgba(255,255,255,.7)'
+          context.beginPath()
+          path(vueInstance.testPath)
+          context.stroke()
         }
-       aaa(ppath, context1)
+        aaa(ppath, context1)
         console.info(pppath(vueInstance.testPath))
-
-
-
-
       },
-      updateVesselRecord: function () {
+      updateVesselRecordTest: function () {
         let vueInstance = this
         let correctedStream = vueInstance.correctedStream
-        correctedStream = new Array(vueInstance.testRoute.length).fill(null)
+        correctedStream = []
 
-        //clousre to pass the index
-        let streamWrapper = function (x, y, index) {
-          let stream = vueInstance.globe.projection.stream({
-            point: function (x, y) {
-              correctedStream[index] = [x, y]
-            }
-          })
-          stream.point(x, y)
-        }
-        this.testPath.coordinates.forEach((point, index) => {
-          streamWrapper(point[0], point[1], index)
+        /*     // TODO: we might need this in the future in case we need filter out data points
+               correctedStream = new Array(vueInstance.testRoute.length).fill(null)
+                //clousre to pass the index
+                let streamWrapper = function (x, y, index) {
+                  let stream = vueInstance.globe.projection.stream({
+                    point: function (x, y) {
+                      correctedStream[index] = [x, y]
+                    }
+                  })
+                  stream.point(x, y)
+                }
+                */
 
+        let stream = vueInstance.globe.projection.stream({
+          point: function (x, y) {
+            correctedStream.push([x, y])
+          }
         })
-        console.log('geoStream clipped points= ')
+
+        vueInstance.testPath.coordinates.forEach((point, index) => {
+          // streamWrapper(point[0], point[1], index)
+          stream.point(point[0], point[1])
+        })
+        console.log(vueInstance.testPath.coordinates.length + ' of points have been filter to ' + correctedStream.length)
         console.info(correctedStream)
         this.correctedStream = correctedStream
       },
       changeProjection: function (newProjection) {
-        console.log(_.snakeCase(newProjection))
         if (newProjection !== this.info.currentProjection) {
+          console.log('change projection, new projection= ' + _.snakeCase(newProjection))
           this.info.currentProjection = newProjection
           this.drawGlobe(true)
           this.onUserInput()
           this.info.currentView = this.globe.orientation()
         }
-
       }
     },
     mounted: function () {
@@ -468,9 +456,7 @@
       this.info.currentView = this.globe.orientation()
       this.addStatsMeter()
       //  this.pixiTest2()
-        this.pixiTest()
-      //requestAnimationFrame(this.pixiTest)
-
+      this.pixiTest()
     },
     filters: {
       startCase: function (value) {
@@ -480,11 +466,7 @@
   }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
-<!--
-d3.geo.(\w)
-d3.geo\U$1\E
--->
+
 <style lang="scss" rel="stylesheet/scss">
   /*TODO: change to BEM style, next time...*/
   @import url('https://fonts.googleapis.com/css?family=Ubuntu:500');
