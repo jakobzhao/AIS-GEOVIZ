@@ -22,6 +22,7 @@
         <button @click="updateVesselRecordTest()">UpdateData</button>
         <button @click="toggleDrawing()">Toggle drawing</button>
         <button @click="pixiWormBox()">Open W-box </button>
+        <button @click="prepData()">Prep Data</button>
 
       </div>
       <div>Long: {{info.currentView.split(',')[0]}}</div>
@@ -44,6 +45,7 @@
   import * as PIXI from 'pixi.js'
   import Stats from 'stats.js'
   import * as d3 from 'd3'
+  import aisData from '../assets/records.json'
   // temp fix till topojson start to use es6 export, https://github.com/topojson/topojson/issues/285
   import * as topojson from 'topojson/node_modules/topojson-client/src/feature'
   import * as micro from '../Utils/micro'
@@ -74,6 +76,8 @@
         earthTopo: null,
         globe: null,
         stats: null, // stats meter
+        rawData: null,
+        processedData: {},
         testRoute: [
           [121.565, 31.098],
           [139.846, 37.062],
@@ -112,7 +116,6 @@
         this.stats.domElement.style.top = '0px'
         //document.getElementsByName('#statsMeter').appendChild(this.stats.domElement)
         document.body.appendChild(this.stats.domElement)
-
       },
       toggleDrawing: function () {
         this.info.isDrawing = !this.info.isDrawing
@@ -431,6 +434,49 @@
           this.onUserInput()
           this.info.currentView = this.globe.orientation()
         }
+      },
+      svgifyPath: function (geoJSON) {
+        let svgGeoPath = this.path.context(null)
+        let svg = svgGeoPath(geoJSON)
+        let longlatRegex = /(\d+\.\d+,\d+\.\d+)/g
+        let longlatMatch
+        let longlat = []
+        while (longlatMatch = longlatRegex.exec(svg)) {
+          longlat.push(longlatMatch[1]);
+        }
+
+        // check if there is any curve or v/h line in generated svg string
+        let checkerRegex = /([a-zA-Z])/g
+        let checkerMatch
+        let checker = []
+        while (checkerMatch = checkerRegex.exec(svg)) {
+          checker.push(checkerMatch[1]);
+        }
+        let checkResult = checker.join().replace(/[lLmM,]/g, '')
+        checkResult.length === 0 ? console.log() : console.log('something not right, ' + checkResult)
+      },
+      prepData: function () {
+        this.svgifyPath(this.testPath)
+        let vueInstance = this
+        vueInstance.rawData = aisData
+
+        let newData = vueInstance.processedData
+        newData = {}
+
+        // do while >> for >> forEach
+        let i = 0;
+        while (i < vueInstance.rawData.length) {
+          let currentVessel = vueInstance.rawData[i]
+          newData[currentVessel.mmsi] = {
+            // hopefully just value of pointer
+            rawData: currentVessel,
+            mmsi: currentVessel.mmsi,
+          }
+          i++
+        }
+
+        //console.info((newData))
+
       }
     },
     mounted: function () {
