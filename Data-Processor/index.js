@@ -2,7 +2,6 @@
 // pm2 start index.js --node-args="--max_old_space_size=6144" # increase to 6gb
 const _ = require('lodash')
 const credential = require('./credential')
-const d3 = require('d3-geo')
 const Promise = require('bluebird')
 const fs = Promise.promisifyAll(require('fs'))
 const options = {promiseLib: Promise, capSQL: true}
@@ -16,15 +15,6 @@ const connection = {
   database: credential.pgDatabase
 }
 const db = pgp(connection)
-
-const kmPerRad = 40075 / (Math.PI * 2)
-const msPerHour = 3.6e6
-
-// https://people.hofstra.edu/geotrans/eng/ch1en/conc1en/greatcircle.html
-
-function getGeoDistance (longlatA, longlatB) {
-  return d3.geoDistance(longlatA, longlatB) * kmPerRad
-}
 
 let singleDayQueryBuilder = function (startDate, endDate, digitArray) {
   let queryInfo = {
