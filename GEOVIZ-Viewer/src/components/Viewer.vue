@@ -381,6 +381,15 @@
         drawGeoPath(geoPath, context2)
         let svgGeoPath = vueInstance.path.context(null)
         console.info(svgGeoPath(vueInstance.testPath))
+
+        // drawing svg
+        let svg = document.getElementById('foreground') //Get svg element
+        let newElement = document.createElementNS("http://www.w3.org/2000/svg", 'path'); //Create a path in SVG's namespace
+        newElement.setAttribute("d", svgGeoPath(vueInstance.testPath)); //Set path's data
+        newElement.style.stroke = "#000"; //Set stroke colour
+        newElement.style.fill = 'none'
+        newElement.style.strokeWidth = "2px"; //Set stroke width
+        svg.appendChild(newElement);
       },
       updateVesselRecordTest: function () {
         let vueInstance = this
