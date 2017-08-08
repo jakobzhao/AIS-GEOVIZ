@@ -39,6 +39,7 @@
 <script>
   import _ from 'lodash'
   import ES6promise from 'es6-promise'
+
   ES6promise.polyfill()
   import axios from 'axios'
   import Promise from 'bluebird'
@@ -387,30 +388,17 @@
 
         // drawing svg
         let svg = document.getElementById('foreground') //Get svg element
-        let newElement = document.createElementNS("http://www.w3.org/2000/svg", 'path'); //Create a path in SVG's namespace
-        newElement.setAttribute("d", svgGeoPath(vueInstance.testPath)); //Set path's data
-        newElement.style.stroke = "#000"; //Set stroke colour
+        let newElement = document.createElementNS('http://www.w3.org/2000/svg', 'path') //Create a path in SVG's namespace
+        newElement.setAttribute('d', svgGeoPath(vueInstance.testPath)) //Set path's data
+        newElement.style.stroke = '#000' //Set stroke colour
         newElement.style.fill = 'none'
-        newElement.style.strokeWidth = "2px"; //Set stroke width
-        svg.appendChild(newElement);
+        newElement.style.strokeWidth = '2px' //Set stroke width
+        svg.appendChild(newElement)
       },
       updateVesselRecordTest: function () {
         let vueInstance = this
         let correctedStream = vueInstance.correctedStream
         correctedStream = []
-
-        /*     // TODO: we might need this in the future in case we need filter out data points
-               correctedStream = new Array(vueInstance.testRoute.length).fill(null)
-                //clousre to pass the index
-                let streamWrapper = function (x, y, index) {
-                  let stream = vueInstance.globe.projection.stream({
-                    point: function (x, y) {
-                      correctedStream[index] = [x, y]
-                    }
-                  })
-                  stream.point(x, y)
-                }
-                */
 
         let stream = vueInstance.globe.projection.stream({
           point: function (x, y) {
@@ -435,36 +423,73 @@
           this.info.currentView = this.globe.orientation()
         }
       },
-      svgifyPath: function (geoJSON) {
+      vesseLonglatToPixel: function (vessel) {
+        let vueInstance = this
+        let pixelArray = []
+        let streamWrapper = function (x, y, vessel, index) {
+          let stream = vueInstance.globe.projection.stream({
+            point: function (x, y) {
+              pixelArray.push([x, y, vessel.recordTime[index]])
+            }
+          })
+          stream.point(x, y)
+        }
+
+        let i = 0
+        while (i < vessel.geoJSON.coordinates.length) {
+          let currentLonglat = vessel.geoJSON.coordinates[i]
+          streamWrapper(currentLonglat[0], currentLonglat[1], vessel, i)
+          i++
+        }
+        return pixelArray
+      },
+      svgifyPath: function (vessel) {
+        let geoStreamedPoint = this.vesseLonglatToPixel(vessel)
         let svgGeoPath = this.path.context(null)
-        let svg = svgGeoPath(geoJSON)
+        let svg = svgGeoPath(vessel.geoJSON)
+
+        // parse svg for longlat
         let longlatRegex = /(\d+\.\d+,\d+\.\d+)/g
         let longlatMatch
-        let longlat = []
+        let longlatTemp = []
         while (longlatMatch = longlatRegex.exec(svg)) {
-          longlat.push(longlatMatch[1]);
+          longlatTemp.push(longlatMatch[1])
+        }
+
+        // loop longlap for cleanup
+        let longlat = []
+        let i = 0
+        while (i < longlatTemp.length) {
+          let currentLonglat = longlatTemp[i]
+          let longlatString = currentLonglat.split(',')
+          // bottleneck here
+          // https://jsperf.com/number-vs-plus-vs-toint-vs-tofloat/14
+          longlat.push([parseFloat(longlatString[0]), parseFloat(longlatString[1])])
+          i++
         }
 
         // check if there is any curve or v/h line in generated svg string
+        // TODO: disable in production
         let checkerRegex = /([a-zA-Z])/g
         let checkerMatch
         let checker = []
         while (checkerMatch = checkerRegex.exec(svg)) {
-          checker.push(checkerMatch[1]);
+          checker.push(checkerMatch[1])
         }
         let checkResult = checker.join().replace(/[lLmM,]/g, '')
         checkResult.length === 0 ? console.log() : console.log('something not right, ' + checkResult)
       },
       prepData: function () {
-        this.svgifyPath(this.testPath)
         let vueInstance = this
         vueInstance.rawData = aisData
+
+        this.svgifyPath(vueInstance.rawData[0])
 
         let newData = vueInstance.processedData
         newData = {}
 
         // do while >> for >> forEach
-        let i = 0;
+        let i = 0
         while (i < vueInstance.rawData.length) {
           let currentVessel = vueInstance.rawData[i]
           newData[currentVessel.mmsi] = {
