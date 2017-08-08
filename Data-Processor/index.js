@@ -29,7 +29,7 @@ let singleDayQueryBuilder = function (startDate, endDate, digitArray) {
     'AND report_time <= ${endDate}\n' +
     'AND CAST(RIGHT(CAST(mmsi as VARCHAR), 1) as INT) IN (${queryMMSI_Digit^})\n' +
     'ORDER BY mmsi, report_time\n' +
-    'LIMIT 20' +
+ //   'LIMIT 20' +
     ';',
     queryInfo
   )
@@ -39,8 +39,32 @@ let singleDayQueryBuilder = function (startDate, endDate, digitArray) {
 
 db.result(singleDayQueryBuilder('2017-08-06', '2017-08-07', [1, 2]))
   .then(result => {
-    fs.writeFileAsync('3.json', JSON.stringify(result.rows), 'utf-8')
+    let records = groupByMMSI(result.rows)
+    fs.writeFileAsync('records.json', JSON.stringify(records), 'utf-8')
   })
 
+function groupByMMSI (data) {
+  // compacted format will be {mmsi, [dateTIme, longlat]}
+  function compact(vessel) {
+    let vesselData = {
+      mmsi: vessel.mmsi,
+      records: []
+    }
+    _.forEach(vessel.records, record => {
+      let newRecord = []
+      newRecord.push(record.report_time)
+      newRecord.push([record.longlat.x, record.longlat.y])
+      vesselData.records.push(newRecord)
+    })
+    return vesselData
+  }
+
+  return _.chain(data)
+    .groupBy('mmsi')
+    .toPairs()
+    .map(vessel => _.zipObject(['mmsi', 'records'], vessel))
+    .map(vessel => compact(vessel))
+    .value()
+}
 
 // moment.js brings too many overheads, use native Date() instead. https://github.com/moment/moment/issues/731
