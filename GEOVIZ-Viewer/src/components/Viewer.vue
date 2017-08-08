@@ -444,15 +444,16 @@
         return pixelArray
       },
       svgifyPath: function (vessel) {
+        // get geoStreamed points with timestamps
         let geoStreamedPoint = this.vesseLonglatToPixel(vessel)
         let svgGeoPath = this.path.context(null)
-        let svg = svgGeoPath(vessel.geoJSON)
+        let svgString = svgGeoPath(vessel.geoJSON)
 
         // parse svg for longlat
         let longlatRegex = /(\d+\.\d+,\d+\.\d+)/g
         let longlatMatch
         let longlatTemp = []
-        while (longlatMatch = longlatRegex.exec(svg)) {
+        while (longlatMatch = longlatRegex.exec(svgString)) {
           longlatTemp.push(longlatMatch[1])
         }
 
@@ -464,7 +465,12 @@
           let longlatString = currentLonglat.split(',')
           // bottleneck here
           // https://jsperf.com/number-vs-plus-vs-toint-vs-tofloat/14
-          longlat.push([parseFloat(longlatString[0]), parseFloat(longlatString[1])])
+          let result = {
+            xy: [parseFloat(longlatString[0]), parseFloat(longlatString[1])],
+            timeStamp: null,
+            isAnchor: false
+          }
+          longlat.push(result)
           i++
         }
 
@@ -473,11 +479,36 @@
         let checkerRegex = /([a-zA-Z])/g
         let checkerMatch
         let checker = []
-        while (checkerMatch = checkerRegex.exec(svg)) {
+        while (checkerMatch = checkerRegex.exec(svgString)) {
           checker.push(checkerMatch[1])
         }
         let checkResult = checker.join().replace(/[lLmM,]/g, '')
         checkResult.length === 0 ? console.log() : console.log('something not right, ' + checkResult)
+
+        let j = 0
+        while (j < geoStreamedPoint.length) {
+          let currentPixelLocArray = [geoStreamedPoint[j][0], geoStreamedPoint[j][1]]
+          let k = 0
+          while (k < longlat.length) {
+            if (_.isEqual(currentPixelLocArray, longlat[k].xy)) {
+            longlat[k].timeStamp = geoStreamedPoint[j][2]
+            longlat[k].isAnchor = true
+            }
+            k++
+          }
+          j++
+        }
+
+
+        // drawing svg
+        let svg = document.getElementById('foreground') //Get svg element
+        let newElement = document.createElementNS('http://www.w3.org/2000/svg', 'path') //Create a path in SVG's namespace
+        newElement.setAttribute('d', svgString) //Set path's data
+        newElement.style.stroke = 'red' //Set stroke colour
+        newElement.style.fill = 'none'
+        newElement.style.strokeWidth = '2px' //Set stroke width
+        svg.appendChild(newElement)
+        console.info(longlat)
       },
       prepData: function () {
         let vueInstance = this
