@@ -56,7 +56,9 @@ function groupByMMSI (data) {
       }
     }
     _.forEach(vessel.records, record => {
-      vesselData.recordTime.push(record.report_time)
+      // store recordTime in second to save space
+      // division is still faster https://jsperf.com/slicevsdivision
+      vesselData.recordTime.push((new Date(record.report_time)).getTime() / 1e3)
       vesselData.geoJSON.coordinates.push([record.longlat.x, record.longlat.y])
     })
     return vesselData
