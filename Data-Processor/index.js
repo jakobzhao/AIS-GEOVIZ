@@ -29,7 +29,7 @@ let singleDayQueryBuilder = function (startDate, endDate, digitArray) {
     'AND report_time <= ${endDate}\n' +
     'AND CAST(RIGHT(CAST(mmsi as VARCHAR), 1) as INT) IN (${queryMMSI_Digit^})\n' +
     'ORDER BY mmsi, report_time\n' +
- //   'LIMIT 20' +
+//  'LIMIT 20' +
     ';',
     queryInfo
   )
@@ -44,17 +44,20 @@ db.result(singleDayQueryBuilder('2017-08-06', '2017-08-07', [1, 2]))
   })
 
 function groupByMMSI (data) {
-  // compacted format will be {mmsi, [dateTIme, longlat]}
-  function compact(vessel) {
+  // build vessel data with a geoJSON object which can be use directly to generate svg path later in viewer
+  //
+  function buildGeoJSON(vessel) {
     let vesselData = {
       mmsi: vessel.mmsi,
-      records: []
+      recordTime: [],
+      geoJSON: {
+        type: 'LineString',
+        coordinates: []
+      }
     }
     _.forEach(vessel.records, record => {
-      let newRecord = []
-      newRecord.push(record.report_time)
-      newRecord.push([record.longlat.x, record.longlat.y])
-      vesselData.records.push(newRecord)
+      vesselData.recordTime.push(record.report_time)
+      vesselData.geoJSON.coordinates.push([record.longlat.x, record.longlat.y])
     })
     return vesselData
   }
@@ -63,7 +66,7 @@ function groupByMMSI (data) {
     .groupBy('mmsi')
     .toPairs()
     .map(vessel => _.zipObject(['mmsi', 'records'], vessel))
-    .map(vessel => compact(vessel))
+    .map(vessel => buildGeoJSON(vessel))
     .value()
 }
 
