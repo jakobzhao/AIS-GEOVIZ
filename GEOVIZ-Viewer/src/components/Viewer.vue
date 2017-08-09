@@ -31,6 +31,7 @@
       <div>Scale: {{info.currentView.split(',')[2]}}</div>
       <div>Projection: {{info.currentProjection}}</div>
       <div>info.isVisible: {{info.isVisible}}</div>
+      <div>info.isRedrawing: {{info.isRedrawing}}</div>
       <div>all vessel: {{info.totalVessel}}</div>
       <div>visible vessel: {{info.totalVessel - info.invisibleVessel}}</div>
       <div id="statsMeter"></div>
@@ -245,7 +246,7 @@
               this.info.isVisible = true
             }
             else {
-              this.isRedrawing = true
+              this.info.isRedrawing = true
             }
             op = null  // the drag/zoom/click operation is over
 
@@ -253,26 +254,24 @@
         d3.select('#display').call(zoom)
       },
       pixiWormBox: function () {
+        let vueInstance = this
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
-        let sprites
+        let sprites = new PIXI.particles.ParticleContainer(10000, {
+          scale: true,
+          position: true,
+          rotation: true,
+          uvs: true,
+          alpha: true
+        })
+        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? 10000 : 100
+        app.stage.addChild(sprites)
         let maggots
 
         function buildSprites () {
-          sprites = new PIXI.particles.ParticleContainer(10000, {
-            scale: true,
-            position: true,
-            rotation: true,
-            uvs: true,
-            alpha: true
-          })
-          app.stage.addChild(sprites)
-
 // create an array to store all the sprites
           maggots = []
-
-          let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? 10000 : 100
 
           for (let i = 0; i < totalSprites; i++) {
 
@@ -327,11 +326,14 @@
           delta = Math.min(delta, 5)
 
           // destroy old and create new
-          if (this.info.isRedrawing) {
+          if (vueInstance.info.isRedrawing) {
             // destroy old and create new
-            sprites.destroy(true)
+            while (sprites.children[0]) {
+              sprites.removeChild(sprites.children[0])
+            }
             buildSprites()
             this.info.isRedrawing = false
+            this.info.isVisible = true
           }
 
           // iterate through the sprites and update their position
@@ -567,27 +569,23 @@
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
-        let sprites
+        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? vueInstance.info.totalVessel : 100
+        let vesselNameList = Object.keys(vueInstance.processedData)
+        let sprites = new PIXI.particles.ParticleContainer(vueInstance.info.totalVessel, {
+          scale: true,
+          position: true,
+          rotation: true,
+          uvs: true,
+          alpha: true
+        })
+        app.stage.addChild(sprites)
         let vesselCollections
 
         function buildSprites () {
-          sprites = new PIXI.particles.ParticleContainer(this.info.totalVessel, {
-            scale: true,
-            position: true,
-            rotation: true,
-            uvs: true,
-            alpha: true
-          })
-          app.stage.addChild(sprites)
-
-// create an array to store all the sprites
           vesselCollections = []
 
-          let vesselNameList = Object.keys(this.processedData)
-          let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? this.info.totalVessel : 100
-
           for (let i = 0; i < totalSprites; i++) {
-            if (this.processedData[vesselNameList[i]].records.length !== 0) {
+            if (vueInstance.processedData[vesselNameList[i]].records.length !== 0) {
               // create a new Sprite
               let vessel = PIXI.Sprite.fromImage('static/maggot.png')
               vessel.alpha = 0.8
@@ -616,7 +614,6 @@
               vesselCollections.push(vessel)
               sprites.addChild(vessel)
             }
-
           }
         }
 
@@ -627,25 +624,27 @@
           delta = Math.min(delta, 5)
 
           // destroy old and create new
-          if (this.info.isRedrawing) {
+          if (vueInstance.info.isRedrawing) {
             // destroy old and create new
-            sprites.destroy(true)
+            while (sprites.children[0]) {
+              sprites.removeChild(sprites.children[0])
+            }
+            vueInstance.processData()
             buildSprites()
             this.info.isRedrawing = false
+            this.info.isVisible = true
           }
 
           if (this.info.isVisible) {
             sprites.visible = true
             // iterate through the sprites and update their position
             for (let i = 0; i < vesselCollections.length; i++) {
-              if (vueInstance.processedData[vesselNameList[i]].records.length !== 0) {
-                let vessel = vesselCollections[i]
-                vessel.scale.y = 0.95 + Math.sin(delta + vessel.offset) * 0.05
-                vessel.direction += vessel.turningSpeed * 0.01
-                vessel.x += Math.sin(vessel.direction) * (vessel.speed * vessel.scale.y)
-                vessel.y += Math.cos(vessel.direction) * (vessel.speed * vessel.scale.y)
-                vessel.rotation = -vessel.direction + Math.PI
-              }
+              let vessel = vesselCollections[i]
+              vessel.scale.y = 0.95 + Math.sin(delta + vessel.offset) * 0.05
+              vessel.direction += vessel.turningSpeed * 0.01
+              vessel.x += Math.sin(vessel.direction) * (vessel.speed * vessel.scale.y)
+              vessel.y += Math.cos(vessel.direction) * (vessel.speed * vessel.scale.y)
+              vessel.rotation = -vessel.direction + Math.PI
             }
           } else {
             sprites.visible = false
