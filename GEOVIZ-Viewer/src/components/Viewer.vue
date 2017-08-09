@@ -22,7 +22,7 @@
         <button @click="updateVesselRecordTest()">UpdateData</button>
         <button @click="toggleDrawing()">Toggle drawing</button>
         <button @click="pixiWormBox()">Open W-box </button>
-        <button @click="prepData()">Prep Data</button>
+        <button @click="processData()">Prep Data</button>
 
       </div>
       <div>Long: {{info.currentView.split(',')[0]}}</div>
@@ -449,75 +449,85 @@
         let svgGeoPath = this.path.context(null)
         let svgString = svgGeoPath(vessel.geoJSON)
 
-        // parse svg for longlat
-        // negative values might appear when scale is large enough
-        let longlatRegex = /(-?\d+\.\d+,-?\d+\.\d+)/g
-        let longlatMatch
-        let longlatTemp = []
-        while (longlatMatch = longlatRegex.exec(svgString)) {
-          longlatTemp.push(longlatMatch[1])
-        }
-
-        // loop longlap for cleanup
-        let longlat = []
-        let i = 0
-        while (i < longlatTemp.length) {
-          let currentLonglat = longlatTemp[i]
-          let longlatString = currentLonglat.split(',')
-          // bottleneck here
-          // https://jsperf.com/number-vs-plus-vs-toint-vs-tofloat/14
-          let result = {
-            xy: [parseFloat(longlatString[0]), parseFloat(longlatString[1])],
-            timeStamp: null,
-            isAnchor: false
+        if (svgString !== null) {
+          // parse svg for longlat
+          // negative values might appear when scale is large enough
+          let longlatRegex = /(-?\d+\.\d+,-?\d+\.\d+)/g
+          let longlatMatch
+          let longlatTemp = []
+          while (longlatMatch = longlatRegex.exec(svgString)) {
+            longlatTemp.push(longlatMatch[1])
           }
-          longlat.push(result)
-          i++
-        }
 
-        // check if there is any curve or v/h line in generated svg string
-        // TODO: disable in production
-        let checkerRegex = /([a-zA-Z])/g
-        let checkerMatch
-        let checker = []
-        while (checkerMatch = checkerRegex.exec(svgString)) {
-          checker.push(checkerMatch[1])
-        }
-        let checkResult = checker.join().replace(/[lLmM,]/g, '')
-        checkResult.length === 0 ? console.log() : console.log('something not right, ' + checkResult)
-
-        let j = 0
-        while (j < geoStreamedPoint.length) {
-          let currentPixelLocArray = [geoStreamedPoint[j][0], geoStreamedPoint[j][1]]
-          let k = 0
-          while (k < longlat.length) {
-            if (_.isEqual(currentPixelLocArray, longlat[k].xy)) {
-            longlat[k].timeStamp = geoStreamedPoint[j][2]
-            longlat[k].isAnchor = true
+          // loop longlap for cleanup
+          let longlat = []
+          let i = 0
+          while (i < longlatTemp.length) {
+            let currentLonglat = longlatTemp[i]
+            let longlatString = currentLonglat.split(',')
+            // bottleneck here
+            // https://jsperf.com/number-vs-plus-vs-toint-vs-tofloat/14
+            let result = {
+              xy: [parseFloat(longlatString[0]), parseFloat(longlatString[1])],
+              timeStamp: null,
+              isAnchor: false
             }
-            k++
+            longlat.push(result)
+            i++
           }
-          j++
-        }
+
+          // check if there is any curve or v/h line in generated svg string
+          // TODO: disable in production
+          let checkerRegex = /([a-zA-Z])/g
+          let checkerMatch
+          let checker = []
+          while (checkerMatch = checkerRegex.exec(svgString)) {
+            checker.push(checkerMatch[1])
+          }
+          let checkResult = checker.join().replace(/[lLmM,]/g, '')
+          if (checkResult) {
+            checkResult.length === 0 ? console.log() : console.log('something not right, ' + checkResult)
+          } else {
+            console.log('all route points are invisible')
+          }
+
+          let j = 0
+          while (j < geoStreamedPoint.length) {
+            let currentPixelLocArray = [geoStreamedPoint[j][0], geoStreamedPoint[j][1]]
+            let k = 0
+            while (k < longlat.length) {
+              if (_.isEqual(currentPixelLocArray, longlat[k].xy)) {
+                longlat[k].timeStamp = geoStreamedPoint[j][2]
+                longlat[k].isAnchor = true
+              }
+              k++
+            }
+            j++
+          }
 
 
-        // drawing svg
-        if (svgString) {
-          let svg = document.getElementById('foreground') //Get svg element
-          let newElement = document.createElementNS('http://www.w3.org/2000/svg', 'path') //Create a path in SVG's namespace
-          newElement.setAttribute('d', svgString) //Set path's data
-          newElement.style.stroke = 'red' //Set stroke colour
-          newElement.style.fill = 'none'
-          newElement.style.strokeWidth = '2px' //Set stroke width
-          svg.appendChild(newElement)
+          /*
+                  // drawing svg, dev only
+                  if (svgString) {
+                    let svg = document.getElementById('foreground') //Get svg element
+                    let newElement = document.createElementNS('http://www.w3.org/2000/svg', 'path') //Create a path in SVG's namespace
+                    newElement.setAttribute('d', svgString) //Set path's data
+                    newElement.style.stroke = 'red' //Set stroke colour
+                    newElement.style.fill = 'none'
+                    newElement.style.strokeWidth = '2px' //Set stroke width
+                    svg.appendChild(newElement)
+
+                  }
+          */
           console.info(longlat)
+          return longlat
+        } else {
+          return []
         }
       },
-      prepData: function () {
+      processData: function () {
         let vueInstance = this
         vueInstance.rawData = aisData
-
-        this.svgifyPath(vueInstance.rawData[0])
 
         let newData = vueInstance.processedData
         newData = {}
@@ -527,9 +537,8 @@
         while (i < vueInstance.rawData.length) {
           let currentVessel = vueInstance.rawData[i]
           newData[currentVessel.mmsi] = {
-            // hopefully just value of pointer
-            rawData: currentVessel,
             mmsi: currentVessel.mmsi,
+            records: vueInstance.svgifyPath(currentVessel)
           }
           i++
         }
