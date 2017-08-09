@@ -20,10 +20,10 @@
         </button>
         <button @click="geoStreamTest()">Line Test</button>
         <button @click="updateVesselRecordTest()">UpdateData</button>
-        <button @click="toggleDrawing()">Toggle drawing</button>
+<!--        <button @click="toggleDrawing()">Toggle drawing</button>
         <button @click="pixiWormBox()">Open W-box </button>
         <button @click="drawData()">draw vessel </button>
-        <button @click="processData()">Prep Data</button>
+        <button @click="processData()">Prep Data</button>-->
 
       </div>
       <div>Long: {{info.currentView.split(',')[0]}}</div>
@@ -565,6 +565,8 @@
         }
       },
       drawData: function () {
+        this.info.isVisible = true
+        this.processData()
         let vueInstance = this
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
         document.getElementById('display').appendChild(app.view)
@@ -589,16 +591,17 @@
               // create a new Sprite
               let vessel = PIXI.Sprite.fromImage('static/maggot.png')
               vessel.alpha = 0.8
-              vessel.scale.set(0.1 + Math.random() * 0.03)
+              vessel.scale.set(1)
               vessel.tint = Math.random() * 0xE8D4CD
 
               // set the anchor point so the texture is centerd on the sprite
               vessel.anchor.set(0.5)
 
               // scatter them all
-              vessel.x = Math.random() * app.renderer.width
-              vessel.y = Math.random() * app.renderer.height
-
+              vessel.x = vueInstance.processedData[vesselNameList[i]].records[0].xy[0]
+              vessel.y = vueInstance.processedData[vesselNameList[i]].records[0].xy[1]
+              vessel.currentIndex = 0
+              vessel.mmsi = vueInstance.processedData[vesselNameList[i]].mmsi
               // create a random direction in radians
               vessel.direction = Math.random() * Math.PI * 2
 
@@ -621,7 +624,8 @@
         app.ticker.add((delta) => {
           this.stats.begin()
           // increment the ticker
-          delta = Math.min(delta, 5)
+         // delta = Math.min(delta, 5)
+          delta = Math.max(delta, 200000)
 
           // destroy old and create new
           if (vueInstance.info.isRedrawing) {
@@ -629,6 +633,7 @@
             while (sprites.children[0]) {
               sprites.removeChild(sprites.children[0])
             }
+            vesselCollections = []
             vueInstance.processData()
             buildSprites()
             this.info.isRedrawing = false
@@ -640,18 +645,20 @@
             // iterate through the sprites and update their position
             for (let i = 0; i < vesselCollections.length; i++) {
               let vessel = vesselCollections[i]
-              vessel.scale.y = 0.95 + Math.sin(delta + vessel.offset) * 0.05
-              vessel.direction += vessel.turningSpeed * 0.01
-              vessel.x += Math.sin(vessel.direction) * (vessel.speed * vessel.scale.y)
-              vessel.y += Math.cos(vessel.direction) * (vessel.speed * vessel.scale.y)
-              vessel.rotation = -vessel.direction + Math.PI
+              if (vessel.currentIndex >= vueInstance.processedData[vessel.mmsi].records.length) {
+                vessel.currentIndex = 0
+              }
+              vessel.x = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[0]
+              vessel.y = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[1]
+              vessel.currentIndex += 1
+
             }
           } else {
             sprites.visible = false
           }
           this.stats.end()
         })
-        app.ticker.speed = 1
+        app.ticker.minFPS = 1
         //requestAnimationFrame( this.pixiWormBox )
       }
     },
@@ -663,6 +670,7 @@
       this.onUserInput()
       this.info.currentView = this.globe.orientation()
       this.addStatsMeter()
+      this.drawData()
       //this.pixiWormBox()
     },
     filters: {
