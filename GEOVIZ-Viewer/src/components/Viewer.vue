@@ -22,6 +22,7 @@
         <button @click="updateVesselRecordTest()">UpdateData</button>
         <button @click="toggleDrawing()">Toggle drawing</button>
         <button @click="pixiWormBox()">Open W-box </button>
+        <button @click="drawData()">draw vessel </button>
         <button @click="processData()">Prep Data</button>
 
       </div>
@@ -301,7 +302,6 @@
 
           // finally we push the dude into the maggots array so it it can be easily accessed later
           maggots.push(dude)
-          this.pixiInstance = maggots
           sprites.addChild(dude)
         }
 
@@ -350,9 +350,7 @@
           this.stats.end()
         })
         app.ticker.speed = 1
-
         //requestAnimationFrame( this.pixiWormBox )
-
       },
       geoStreamTest: function () {
         let vueInstance = this
@@ -547,6 +545,84 @@
           }
           i++
         }
+      },
+      drawData: function () {
+        let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
+        document.getElementById('display').appendChild(app.view)
+        app.view.className += 'fill-screen'
+        let sprites = new PIXI.particles.ParticleContainer(this.info.totalVessel, {
+          scale: true,
+          position: true,
+          rotation: true,
+          uvs: true,
+          alpha: true
+        })
+        app.stage.addChild(sprites)
+
+// create an array to store all the sprites
+        let vesselCollections = []
+        let vueInstance = this
+        let vesselNameList = Object.keys(this.processedData)
+        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? this.info.totalVessel : 100
+
+        for (let i = 0; i < totalSprites; i++) {
+          if (this.processedData[vesselNameList[i]].records.length !==0) {
+            // create a new Sprite
+            let vessel = PIXI.Sprite.fromImage('static/maggot.png')
+            vessel.alpha = 0.8
+            vessel.scale.set(0.1 + Math.random() * 0.03)
+            vessel.tint = Math.random() * 0xE8D4CD
+
+            // set the anchor point so the texture is centerd on the sprite
+            vessel.anchor.set(0.5)
+
+            // scatter them all
+            vessel.x = Math.random() * app.renderer.width
+            vessel.y = Math.random() * app.renderer.height
+
+            // create a random direction in radians
+            vessel.direction = Math.random() * Math.PI * 2
+
+            // this number will be used to modify the direction of the sprite over time
+            vessel.turningSpeed = Math.random() - 0.8
+
+            // create a random speed between 0 - 2, and these vesselCollections are slooww
+            vessel.speed = (2 + Math.random() * 2) * 0.2
+
+            vessel.offset = Math.random() * 100
+
+            // finally we push the vessel into the vesselCollections array so it it can be easily accessed later
+            vesselCollections.push(vessel)
+            sprites.addChild(vessel)
+          }
+
+        }
+
+
+        app.ticker.add((delta) => {
+          this.stats.begin()
+          // increment the ticker
+          delta = Math.min(delta, 5)
+          // iterate through the sprites and update their position
+          if (this.info.isDrawing) {
+            sprites.visible = true
+            for (let i = 0; i < vesselCollections.length; i++) {
+              if (vueInstance.processedData[vesselNameList[i]].records.length !==0) {
+                let vessel = vesselCollections[i]
+                vessel.scale.y = 0.95 + Math.sin(delta + vessel.offset) * 0.05
+                vessel.direction += vessel.turningSpeed * 0.01
+                vessel.x += Math.sin(vessel.direction) * (vessel.speed * vessel.scale.y)
+                vessel.y += Math.cos(vessel.direction) * (vessel.speed * vessel.scale.y)
+                vessel.rotation = -vessel.direction + Math.PI
+              }
+            }
+          } else {
+            sprites.visible = false
+          }
+          this.stats.end()
+        })
+        app.ticker.speed = 1
+        //requestAnimationFrame( this.pixiWormBox )
       }
     },
     mounted: function () {
