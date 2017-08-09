@@ -30,7 +30,8 @@
       <div>Scale: {{info.currentView.split(',')[2]}}</div>
       <div>Projection: {{info.currentProjection}}</div>
       <div>info.isDrawing: {{info.isDrawing}}</div>
-      <div>invisible vessel: {{info.invisibleVessel}}</div>
+      <div>all vessel: {{info.totalVessel}}</div>
+      <div>visible vessel: {{info.totalVessel - info.invisibleVessel}}</div>
       <div id="statsMeter"></div>
     </div>
 
@@ -517,7 +518,6 @@
               newElement.style.fill = 'none'
               newElement.style.strokeWidth = '2px' //Set stroke width
               svg.appendChild(newElement)
-
             }
           } else if (this.params.DEVMODE > 10) {
             console.info(longlat)
@@ -533,23 +533,20 @@
         let vueInstance = this
         vueInstance.info.invisibleVessel = 0
         vueInstance.rawData = aisData
+        vueInstance.info.totalVessel = aisData.length
 
-        let newData = vueInstance.processedData
-        newData = {}
+        vueInstance.processedData = {}
 
         // do while >> for >> forEach
         let i = 0
         while (i < vueInstance.rawData.length) {
           let currentVessel = vueInstance.rawData[i]
-          newData[currentVessel.mmsi] = {
+          vueInstance.processedData[currentVessel.mmsi] = {
             mmsi: currentVessel.mmsi,
             records: vueInstance.svgifyPath(currentVessel)
           }
           i++
         }
-
-        //console.info((newData))
-
       }
     },
     mounted: function () {
