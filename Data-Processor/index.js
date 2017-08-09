@@ -29,7 +29,7 @@ let singleDayQueryBuilder = function (startDate, endDate, digitArray) {
     'AND report_time <= ${endDate}\n' +
     'AND CAST(RIGHT(CAST(mmsi as VARCHAR), 1) as INT) IN (${queryMMSI_Digit^})\n' +
     'ORDER BY mmsi, report_time\n' +
-//  'LIMIT 20' +
+  'LIMIT 200' +
     ';',
     queryInfo
   )
@@ -58,8 +58,12 @@ function groupByMMSI (data) {
     _.forEach(vessel.records, record => {
       // store recordTime in second to save space
       // division is still faster https://jsperf.com/slicevsdivision
-      vesselData.recordTime.push((new Date(record.report_time)).getTime() / 1e3)
-      vesselData.geoJSON.coordinates.push([record.longlat.x, record.longlat.y])
+      // [181, 91] is an impossible longlat, thus was being used as placeholder for no data (for whatever reasons)
+      if (record.longlat.x !==181 || record.longlat.y !==91) {
+        vesselData.recordTime.push((new Date(record.report_time)).getTime() / 1e3)
+        vesselData.geoJSON.coordinates.push([record.longlat.x, record.longlat.y])      } else {
+        console.log('we have one invalid record for ' + record.mmsi)
+      }
     })
     return vesselData
   }
