@@ -450,7 +450,7 @@
         let svgString = svgGeoPath(vessel.geoJSON)
 
         // parse svg for longlat
-        let longlatRegex = /(\d+\.\d+,\d+\.\d+)/g
+        let longlatRegex = /(-?\d+\.\d+,-?\d+\.\d+)/g
         let longlatMatch
         let longlatTemp = []
         while (longlatMatch = longlatRegex.exec(svgString)) {
