@@ -450,6 +450,7 @@
         let svgString = svgGeoPath(vessel.geoJSON)
 
         // parse svg for longlat
+        // negative values might appear when scale is large enough
         let longlatRegex = /(-?\d+\.\d+,-?\d+\.\d+)/g
         let longlatMatch
         let longlatTemp = []
@@ -501,14 +502,16 @@
 
 
         // drawing svg
-        let svg = document.getElementById('foreground') //Get svg element
-        let newElement = document.createElementNS('http://www.w3.org/2000/svg', 'path') //Create a path in SVG's namespace
-        newElement.setAttribute('d', svgString) //Set path's data
-        newElement.style.stroke = 'red' //Set stroke colour
-        newElement.style.fill = 'none'
-        newElement.style.strokeWidth = '2px' //Set stroke width
-        svg.appendChild(newElement)
-        console.info(longlat)
+        if (svgString) {
+          let svg = document.getElementById('foreground') //Get svg element
+          let newElement = document.createElementNS('http://www.w3.org/2000/svg', 'path') //Create a path in SVG's namespace
+          newElement.setAttribute('d', svgString) //Set path's data
+          newElement.style.stroke = 'red' //Set stroke colour
+          newElement.style.fill = 'none'
+          newElement.style.strokeWidth = '2px' //Set stroke width
+          svg.appendChild(newElement)
+          console.info(longlat)
+        }
       },
       prepData: function () {
         let vueInstance = this
