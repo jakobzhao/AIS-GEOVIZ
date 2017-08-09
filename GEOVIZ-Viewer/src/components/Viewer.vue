@@ -30,6 +30,7 @@
       <div>Scale: {{info.currentView.split(',')[2]}}</div>
       <div>Projection: {{info.currentProjection}}</div>
       <div>info.isDrawing: {{info.isDrawing}}</div>
+      <div>invisible vessel: {{info.invisibleVessel}}</div>
       <div id="statsMeter"></div>
     </div>
 
@@ -63,6 +64,8 @@
           currentView: '-170, 15, null',
           isDrawing: true,
           isMobile: false,
+          totalVessel: 0,
+          invisibleVessel: 0
         },
         params: {
           DEBOUNCE_WAIT: 500,
@@ -487,8 +490,6 @@
           let checkResult = checker.join().replace(/[lLmM,]/g, '')
           if (checkResult) {
             checkResult.length === 0 ? console.log() : console.log('something not right, ' + checkResult)
-          } else {
-            console.log('all route points are invisible')
           }
 
           let j = 0
@@ -522,11 +523,13 @@
           console.info(longlat)
           return longlat
         } else {
+          this.info.invisibleVessel += 1
           return []
         }
       },
       processData: function () {
         let vueInstance = this
+        vueInstance.info.invisibleVessel = 0
         vueInstance.rawData = aisData
 
         let newData = vueInstance.processedData
