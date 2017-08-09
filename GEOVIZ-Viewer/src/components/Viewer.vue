@@ -75,7 +75,8 @@
           PROJECTION_LIST: Object.keys(globes.projectionList),
           REDRAW_WAIT: 5,
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
-          VIEW: micro.view()
+          VIEW: micro.view(),
+          DEVMODE: 1
         },
         earthTopo: null,
         globe: null,
@@ -506,21 +507,22 @@
             j++
           }
 
+          // drawing svg
+          if (this.params.DEVMODE > 100) {
+            if (svgString) {
+              let svg = document.getElementById('foreground') //Get svg element
+              let newElement = document.createElementNS('http://www.w3.org/2000/svg', 'path') //Create a path in SVG's namespace
+              newElement.setAttribute('d', svgString) //Set path's data
+              newElement.style.stroke = 'red' //Set stroke colour
+              newElement.style.fill = 'none'
+              newElement.style.strokeWidth = '2px' //Set stroke width
+              svg.appendChild(newElement)
 
-          /*
-                  // drawing svg, dev only
-                  if (svgString) {
-                    let svg = document.getElementById('foreground') //Get svg element
-                    let newElement = document.createElementNS('http://www.w3.org/2000/svg', 'path') //Create a path in SVG's namespace
-                    newElement.setAttribute('d', svgString) //Set path's data
-                    newElement.style.stroke = 'red' //Set stroke colour
-                    newElement.style.fill = 'none'
-                    newElement.style.strokeWidth = '2px' //Set stroke width
-                    svg.appendChild(newElement)
+            }
+          } else if (this.params.DEVMODE > 10) {
+            console.info(longlat)
+          }
 
-                  }
-          */
-          console.info(longlat)
           return longlat
         } else {
           this.info.invisibleVessel += 1
