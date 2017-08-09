@@ -30,7 +30,7 @@
       <div>Later: {{info.currentView.split(',')[1]}}</div>
       <div>Scale: {{info.currentView.split(',')[2]}}</div>
       <div>Projection: {{info.currentProjection}}</div>
-      <div>info.isDrawing: {{info.isDrawing}}</div>
+      <div>info.isVisible: {{info.isVisible}}</div>
       <div>all vessel: {{info.totalVessel}}</div>
       <div>visible vessel: {{info.totalVessel - info.invisibleVessel}}</div>
       <div id="statsMeter"></div>
@@ -64,7 +64,8 @@
         info: {
           currentProjection: 'orthographic',
           currentView: '-170, 15, null',
-          isDrawing: true,
+          isVisible: true,
+          isRedrawing: false,
           isMobile: false,
           totalVessel: 0,
           invisibleVessel: 0
@@ -125,7 +126,7 @@
         document.body.appendChild(this.stats.domElement)
       },
       toggleDrawing: function () {
-        this.info.isDrawing = !this.info.isDrawing
+        this.info.isVisible = !this.info.isVisible
       },
       setEarthTopo: function () {
         this.info.isMobile = micro.isMobile()
@@ -193,16 +194,8 @@
         let op = null
         let zoom = d3.zoom()
           .on('start', () => {
-            this.info.isDrawing = false
-
-            op = op || newOp(d3.mouse(displayDiv), /*zoom.scale()*/ d3.zoomTransform(displayDiv).k)  // a new operation begins
+            op = op || newOp(d3.mouse(displayDiv), d3.zoomTransform(displayDiv).k)  // a new operation begins
             console.log('zoom started')
-
-            // replace path with low-res data
-            coastline.datum(this.earthTopo.coastLo)
-            lakes.datum(this.earthTopo.lakesLo)
-            d3.selectAll('path').attr('d', this.path)
-
           })
           .on('zoom', () => {
             console.log('zooming...')
@@ -220,13 +213,19 @@
                 return
               }
               op.type = 'drag'
+              this.info.isVisible = false
+
+              // replace path with low-res data
+              coastline.datum(this.earthTopo.coastLo)
+              lakes.datum(this.earthTopo.lakesLo)
+              d3.selectAll('path').attr('d', this.path)
             }
             if (currentZoomRatio !== op.startScale) {
               op.type = 'zoom' // whenever a scale change is detected, (stickily) switch to a zoom operation
             }
 
             // when zooming, ignore whatever the mouse is doing--really cleans up behavior on touch devices
-            console.log('op type= ' + op.type)
+
             // console.log('for real ' + op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio)
             op.manipulator.move(op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio * vueViewer.currentScale)
             this.info.currentView = this.globe.orientation()
@@ -234,20 +233,22 @@
           })
           .on('end', () => {
             console.log('ended')
+            console.log('op type= ' + op.type)
             this.info.currentView = this.globe.orientation()
-
             coastline.datum(this.earthTopo.coastHi)
             lakes.datum(this.earthTopo.lakesHi)
             d3.selectAll('path').attr('d', this.path)
 
             op.manipulator.end()
-            if (op.type === 'click') {
+            // click rarely happens...
+            if (op.type === 'click' || op.type === 'spurious') {
+              this.info.isVisible = true
             }
-            else if (op.type !== 'spurious') {
+            else {
+              this.isRedrawing = true
             }
             op = null  // the drag/zoom/click operation is over
 
-            this.info.isDrawing = true
           })
         d3.select('#display').call(zoom)
       },
@@ -255,57 +256,63 @@
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
-        let sprites = new PIXI.particles.ParticleContainer(10000, {
-          scale: true,
-          position: true,
-          rotation: true,
-          uvs: true,
-          alpha: true
-        })
-        app.stage.addChild(sprites)
+        let sprites
+        let maggots
+
+        function buildSprites () {
+          sprites = new PIXI.particles.ParticleContainer(10000, {
+            scale: true,
+            position: true,
+            rotation: true,
+            uvs: true,
+            alpha: true
+          })
+          app.stage.addChild(sprites)
 
 // create an array to store all the sprites
-        let maggots = []
+          maggots = []
 
-        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? 10000 : 100
+          let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? 10000 : 100
 
-        for (let i = 0; i < totalSprites; i++) {
+          for (let i = 0; i < totalSprites; i++) {
 
-          // create a new Sprite
-          let dude = PIXI.Sprite.fromImage('static/maggot.png')
-          dude.alpha = 0.5
+            // create a new Sprite
+            let dude = PIXI.Sprite.fromImage('static/maggot.png')
+            dude.alpha = 0.5
 
-          dude.tint = Math.random() * 0xE8D4CD
+            dude.tint = Math.random() * 0xE8D4CD
 
-          // set the anchor point so the texture is centerd on the sprite
-          dude.anchor.set(0.5)
+            // set the anchor point so the texture is centerd on the sprite
+            dude.anchor.set(0.5)
 
-          // different maggots, different sizes
-          dude.scale.set(0.1 + Math.random() * 0.03)
+            // different maggots, different sizes
+            dude.scale.set(0.1 + Math.random() * 0.03)
 
-          // scatter them all
-          dude.x = Math.random() * app.renderer.width
-          dude.y = Math.random() * app.renderer.height
+            // scatter them all
+            dude.x = Math.random() * app.renderer.width
+            dude.y = Math.random() * app.renderer.height
 
-          dude.tint = Math.random() * 0x808080
+            dude.tint = Math.random() * 0x808080
 
-          // create a random direction in radians
-          dude.direction = Math.random() * Math.PI * 2
+            // create a random direction in radians
+            dude.direction = Math.random() * Math.PI * 2
 
-          // this number will be used to modify the direction of the sprite over time
-          dude.turningSpeed = Math.random() - 0.8
+            // this number will be used to modify the direction of the sprite over time
+            dude.turningSpeed = Math.random() - 0.8
 
-          // create a random speed between 0 - 2, and these maggots are slooww
-          dude.speed = (2 + Math.random() * 2) * 0.2
+            // create a random speed between 0 - 2, and these maggots are slooww
+            dude.speed = (2 + Math.random() * 2) * 0.2
 
-          dude.offset = Math.random() * 100
+            dude.offset = Math.random() * 100
 
-          // finally we push the dude into the maggots array so it it can be easily accessed later
-          maggots.push(dude)
-          sprites.addChild(dude)
+            // finally we push the dude into the maggots array so it it can be easily accessed later
+            maggots.push(dude)
+            sprites.addChild(dude)
+          }
         }
 
-// create a bounding box box for the little maggots
+        buildSprites()
+        // create a bounding box box for the little maggots
         let dudeBoundsPadding = 100
         let dudeBounds = new PIXI.Rectangle(
           -dudeBoundsPadding,
@@ -318,8 +325,17 @@
           this.stats.begin()
           // increment the ticker
           delta = Math.min(delta, 5)
+
+          // destroy old and create new
+          if (this.info.isRedrawing) {
+            // destroy old and create new
+            sprites.destroy(true)
+            buildSprites()
+            this.info.isRedrawing = false
+          }
+
           // iterate through the sprites and update their position
-          if (this.info.isDrawing) {
+          if (this.info.isVisible) {
             sprites.visible = true
             for (let i = 0; i < maggots.length; i++) {
               let dude = maggots[i]
@@ -547,67 +563,82 @@
         }
       },
       drawData: function () {
+        let vueInstance = this
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
-        let sprites = new PIXI.particles.ParticleContainer(this.info.totalVessel, {
-          scale: true,
-          position: true,
-          rotation: true,
-          uvs: true,
-          alpha: true
-        })
-        app.stage.addChild(sprites)
+        let sprites
+        let vesselCollections
+
+        function buildSprites () {
+          sprites = new PIXI.particles.ParticleContainer(this.info.totalVessel, {
+            scale: true,
+            position: true,
+            rotation: true,
+            uvs: true,
+            alpha: true
+          })
+          app.stage.addChild(sprites)
 
 // create an array to store all the sprites
-        let vesselCollections = []
-        let vueInstance = this
-        let vesselNameList = Object.keys(this.processedData)
-        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? this.info.totalVessel : 100
+          vesselCollections = []
 
-        for (let i = 0; i < totalSprites; i++) {
-          if (this.processedData[vesselNameList[i]].records.length !==0) {
-            // create a new Sprite
-            let vessel = PIXI.Sprite.fromImage('static/maggot.png')
-            vessel.alpha = 0.8
-            vessel.scale.set(0.1 + Math.random() * 0.03)
-            vessel.tint = Math.random() * 0xE8D4CD
+          let vesselNameList = Object.keys(this.processedData)
+          let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? this.info.totalVessel : 100
 
-            // set the anchor point so the texture is centerd on the sprite
-            vessel.anchor.set(0.5)
+          for (let i = 0; i < totalSprites; i++) {
+            if (this.processedData[vesselNameList[i]].records.length !== 0) {
+              // create a new Sprite
+              let vessel = PIXI.Sprite.fromImage('static/maggot.png')
+              vessel.alpha = 0.8
+              vessel.scale.set(0.1 + Math.random() * 0.03)
+              vessel.tint = Math.random() * 0xE8D4CD
 
-            // scatter them all
-            vessel.x = Math.random() * app.renderer.width
-            vessel.y = Math.random() * app.renderer.height
+              // set the anchor point so the texture is centerd on the sprite
+              vessel.anchor.set(0.5)
 
-            // create a random direction in radians
-            vessel.direction = Math.random() * Math.PI * 2
+              // scatter them all
+              vessel.x = Math.random() * app.renderer.width
+              vessel.y = Math.random() * app.renderer.height
 
-            // this number will be used to modify the direction of the sprite over time
-            vessel.turningSpeed = Math.random() - 0.8
+              // create a random direction in radians
+              vessel.direction = Math.random() * Math.PI * 2
 
-            // create a random speed between 0 - 2, and these vesselCollections are slooww
-            vessel.speed = (2 + Math.random() * 2) * 0.2
+              // this number will be used to modify the direction of the sprite over time
+              vessel.turningSpeed = Math.random() - 0.8
 
-            vessel.offset = Math.random() * 100
+              // create a random speed between 0 - 2, and these vesselCollections are slooww
+              vessel.speed = (2 + Math.random() * 2) * 0.2
 
-            // finally we push the vessel into the vesselCollections array so it it can be easily accessed later
-            vesselCollections.push(vessel)
-            sprites.addChild(vessel)
+              vessel.offset = Math.random() * 100
+
+              // finally we push the vessel into the vesselCollections array so it it can be easily accessed later
+              vesselCollections.push(vessel)
+              sprites.addChild(vessel)
+            }
+
           }
-
         }
 
-
+        buildSprites()
         app.ticker.add((delta) => {
           this.stats.begin()
           // increment the ticker
           delta = Math.min(delta, 5)
-          // iterate through the sprites and update their position
-          if (this.info.isDrawing) {
+
+          // destroy old and create new
+          if (this.info.isRedrawing) {
+            // destroy old and create new
+            sprites.destroy(true)
+            buildSprites()
+            this.info.isRedrawing = false
+          }
+
+          if (this.info.isVisible) {
             sprites.visible = true
+            // iterate through the sprites and update their position
             for (let i = 0; i < vesselCollections.length; i++) {
-              if (vueInstance.processedData[vesselNameList[i]].records.length !==0) {
+              if (vueInstance.processedData[vesselNameList[i]].records.length !== 0) {
                 let vessel = vesselCollections[i]
                 vessel.scale.y = 0.95 + Math.sin(delta + vessel.offset) * 0.05
                 vessel.direction += vessel.turningSpeed * 0.01
