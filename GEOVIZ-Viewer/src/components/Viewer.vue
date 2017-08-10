@@ -81,7 +81,7 @@
           REDRAW_WAIT: 5,
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
           VIEW: micro.view(),
-          DEVMODE: 1
+          DEVMODE: 11
         },
         earthTopo: null,
         globe: null,
@@ -154,7 +154,7 @@
         } else {return null}
       },
       drawGlobe: function (isUpdate) {
-        console.log('drawing...')
+        if (this.params.DEVMODE > 100) console.log('drawing...')
         this.globe = this.buildGlobe(this.info.currentProjection)
         // First clear map and foreground svg contents.
         micro.removeChildren(d3.select('#map').node())
@@ -188,15 +188,13 @@
         let zoom = d3.zoom()
           .on('start', () => {
             op = op || newOp(d3.mouse(displayDiv), d3.zoomTransform(displayDiv).k)  // a new operation begins
-            console.log('zoom started')
-            console.log('zoomRatio= ' + d3.zoomTransform(displayDiv).k)
+            if (this.params.DEVMODE > 10) console.log('zoom started')
           })
           .on('zoom', () => {
-            console.log('zooming...')
+            if (this.params.DEVMODE > 10) console.log('zooming...')
             let currentMouse = d3.mouse(displayDiv)
             let currentZoomRatio = d3.zoomTransform(displayDiv).k
-            console.log('zoomRatio= ' + d3.zoomTransform(displayDiv).k)
-            // console.log('current Scale= ' + currentZoomRatio)
+            if (this.params.DEVMODE > 100) console.log('zoomRatio= ' + d3.zoomTransform(displayDiv).k)
 
             op = op || newOp(currentMouse, 10)  // Fix bug on some browsers where zoomstart fires out of order.
             if (op.type === 'click' || op.type === 'spurious') {
@@ -221,14 +219,16 @@
 
             // when zooming, ignore whatever the mouse is doing--really cleans up behavior on touch devices
 
-            // console.log('for real ' + op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio)
+            if (this.params.DEVMODE > 100) console.log('for real ' + op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio)
             op.manipulator.move(op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio * vueViewer.info.initScale)
             this.info.currentView = this.globe.orientation()
             d3.selectAll('path').attr('d', this.path)
           })
           .on('end', () => {
-            console.log('ended')
-            console.log('op type= ' + op.type)
+            if (this.params.DEVMODE > 10) {
+              console.log('ended')
+              console.log('op type= ' + op.type)
+            }
             this.info.currentView = this.globe.orientation()
             coastline.datum(this.earthTopo.coastHi)
             lakes.datum(this.earthTopo.lakesHi)
@@ -390,7 +390,7 @@
         let geoPath = vueInstance.path.context(context2)
 
         let drawGeoPath = function (path, context) {
-          console.log('now drawing')
+          if (vueInstance.params.DEVMODE > 10) console.log('now drawing')
           context.lineWidth = 7
           context.strokeStyle = 'rgba(71, 192, 180, 0.7)'
           context.beginPath()
@@ -399,7 +399,7 @@
         }
         drawGeoPath(geoPath, context2)
         let svgGeoPath = vueInstance.path.context(null)
-        console.info(svgGeoPath(vueInstance.testPath))
+        if (vueInstance.params.DEVMODE > 10) console.info(svgGeoPath(vueInstance.testPath))
 
         // drawing svg
         let svg = document.getElementById('foreground') //Get svg element
@@ -425,13 +425,15 @@
           // streamWrapper(point[0], point[1], index)
           stream.point(point[0], point[1])
         })
-        console.log(vueInstance.testPath.coordinates.length + ' of points have been filter to ' + correctedStream.length)
-        console.info(correctedStream)
+        if (this.params.DEVMODE > 10) {
+          console.log(vueInstance.testPath.coordinates.length + ' of points have been filter to ' + correctedStream.length)
+          console.info(correctedStream)
+        }
         this.correctedStream = correctedStream
       },
       changeProjection: function (newProjection) {
         if (newProjection !== this.info.currentProjection) {
-          console.log('change projection, new projection= ' + _.snakeCase(newProjection))
+          if (this.params.DEVMODE > 10) console.log('change projection, new projection= ' + _.snakeCase(newProjection))
           let scale = (this.info.currentView.split(','))[2]
           this.info.currentProjection = newProjection
           this.drawGlobe()
@@ -520,7 +522,7 @@
           }
 
           // drawing svg
-          if (this.params.DEVMODE > 100) {
+          if (this.params.DEVMODE > 200) {
             if (svgString) {
               let svg = document.getElementById('foreground') //Get svg element
               let newElement = document.createElementNS('http://www.w3.org/2000/svg', 'path') //Create a path in SVG's namespace
