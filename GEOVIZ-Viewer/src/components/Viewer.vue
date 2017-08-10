@@ -240,6 +240,7 @@
               this.info.isVisible = true
             }
             else {
+              // TODO: add a _.debounce here?
               this.info.isRedrawing = true
             }
             op = null  // the drag/zoom/click operation is over
@@ -533,7 +534,13 @@
               svg.appendChild(newElement)
             }
           } else if (this.params.DEVMODE > 10) {
-            console.info(longlat)
+            let newUntimedPoint = longlat.filter(record => {
+              return !record.isAnchor
+            })
+            if (newUntimedPoint.length) {
+              console.log('find new pts w/o timestamp')
+              console.info(newUntimedPoint)
+            }
           }
 
           return longlat
