@@ -65,7 +65,7 @@
         info: {
           currentProjection: 'orthographic',
           currentView: '-170, 15, null',
-          previousView: null,
+          initScale: 0,
           isVisible: true,
           isRedrawing: false,
           isMobile: false,
@@ -113,10 +113,6 @@
     computed: {
       path: function () {
         return d3.geoPath().projection(this.globe.projection).pointRadius(7)
-      },
-      currentScale: function () {
-        // return (this.info.currentView.split(','))[2] === null ? 1 : (this.info.currentView.split(','))[2]
-        return this.globe.projection.scale()
       }
     },
     methods: {
@@ -165,11 +161,6 @@
         micro.removeChildren(d3.select('#foreground').node())
         // Create new map svg elements.
         this.globe.defineMap(d3.select('#map'), d3.select('#foreground'))
-        if (isUpdate) {
-          let newView = this.info.currentView.split(',')
-          newView[2] = this.globe.fit(this.params.VIEW)
-          this.info.currentView = newView.join()
-        }
         this.globe.orientation(this.info.currentView, this.params.VIEW)
 
         let coastline = d3.select('.coastline')
@@ -198,11 +189,13 @@
           .on('start', () => {
             op = op || newOp(d3.mouse(displayDiv), d3.zoomTransform(displayDiv).k)  // a new operation begins
             console.log('zoom started')
+            console.log('zoomRatio= ' + d3.zoomTransform(displayDiv).k)
           })
           .on('zoom', () => {
             console.log('zooming...')
             let currentMouse = d3.mouse(displayDiv)
             let currentZoomRatio = d3.zoomTransform(displayDiv).k
+            console.log('zoomRatio= ' + d3.zoomTransform(displayDiv).k)
             // console.log('current Scale= ' + currentZoomRatio)
 
             op = op || newOp(currentMouse, 10)  // Fix bug on some browsers where zoomstart fires out of order.
@@ -229,7 +222,7 @@
             // when zooming, ignore whatever the mouse is doing--really cleans up behavior on touch devices
 
             // console.log('for real ' + op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio)
-            op.manipulator.move(op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio * vueViewer.currentScale)
+            op.manipulator.move(op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio * vueViewer.info.initScale)
             this.info.currentView = this.globe.orientation()
             d3.selectAll('path').attr('d', this.path)
           })
@@ -439,12 +432,11 @@
       changeProjection: function (newProjection) {
         if (newProjection !== this.info.currentProjection) {
           console.log('change projection, new projection= ' + _.snakeCase(newProjection))
-          this.info.previousView = _.clone(this.info.currentView)
+          let scale = (this.info.currentView.split(','))[2]
           this.info.currentProjection = newProjection
-          this.drawGlobe(true)
+          this.drawGlobe()
           this.onUserInput()
           this.info.isRedrawing = true
-          this.info.currentView = this.globe.orientation()
         }
       },
       vesseLonglatToPixel: function (vessel) {
@@ -674,6 +666,8 @@
       this.info.currentView = this.globe.orientation()
       this.addStatsMeter()
       this.drawData()
+      // have to move here as this.globe.orientation() seems to create a race condition and initScale will get a 0 if executed immediately after this.globe.orientation()
+      this.info.initScale = (this.info.currentView.split(','))[2]
       //this.pixiWormBox()
     },
     filters: {
