@@ -65,6 +65,7 @@
         info: {
           currentProjection: 'orthographic',
           currentView: '-170, 15, null',
+          previousView: null,
           isVisible: true,
           isRedrawing: false,
           isMobile: false,
@@ -438,9 +439,11 @@
       changeProjection: function (newProjection) {
         if (newProjection !== this.info.currentProjection) {
           console.log('change projection, new projection= ' + _.snakeCase(newProjection))
+          this.info.previousView = _.clone(this.info.currentView)
           this.info.currentProjection = newProjection
           this.drawGlobe(true)
           this.onUserInput()
+          this.info.isRedrawing = true
           this.info.currentView = this.globe.orientation()
         }
       },
