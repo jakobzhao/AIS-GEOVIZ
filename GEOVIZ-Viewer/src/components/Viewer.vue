@@ -538,8 +538,12 @@
               return !record.isAnchor
             })
             if (newUntimedPoint.length) {
-              console.log('find new pts w/o timestamp')
+              console.log('find new pts w/o timestamp, ship ' + vessel.mmsi)
               console.info(newUntimedPoint)
+              console.log('while geoStream yields')
+              console.info(geoStreamedPoint)
+              console.log('and svg yields')
+              console.info(longlat)
             }
           }
 
@@ -674,6 +678,15 @@
       this.onUserInput()
       this.info.currentView = this.globe.orientation()
       this.addStatsMeter()
+
+      /*
+      * TODO: need add a async request here with no data filter
+      *      // store recordTime in second to save space
+      // division is still faster https://jsperf.com/slicevsdivision
+      // [181, 91] is an impossible longlat, thus was being used as placeholder for no data (for whatever reasons)
+      if (record.longlat.x !== 181 || record.longlat.y !== 91) {
+      * */
+
       this.drawData()
       // have to move here as this.globe.orientation() seems to create a race condition and initScale will get a 0 if executed immediately after this.globe.orientation()
       this.info.initScale = (this.info.currentView.split(','))[2]
