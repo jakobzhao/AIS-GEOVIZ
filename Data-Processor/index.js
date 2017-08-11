@@ -29,7 +29,7 @@ let singleDayQueryBuilder = function (startDate, endDate, digitArray) {
     'AND report_time <= ${endDate}\n' +
     'AND CAST(RIGHT(CAST(mmsi as VARCHAR), 1) as INT) IN (${queryMMSI_Digit^})\n' +
     'ORDER BY mmsi, report_time\n' +
-  'LIMIT 200' +
+    'LIMIT 200' +
     ';',
     queryInfo
   )
@@ -46,7 +46,7 @@ db.result(singleDayQueryBuilder('2017-08-06', '2017-08-07', [1, 2]))
 function groupByMMSI (data) {
   // build vessel data with a geoJSON object which can be use directly to generate svg path later in viewer
   //
-  function buildGeoJSON(vessel) {
+  function buildGeoJSON (vessel) {
     let vesselData = {
       mmsi: vessel.mmsi,
       recordTime: [],
@@ -56,14 +56,8 @@ function groupByMMSI (data) {
       }
     }
     _.forEach(vessel.records, record => {
-      // store recordTime in second to save space
-      // division is still faster https://jsperf.com/slicevsdivision
-      // [181, 91] is an impossible longlat, thus was being used as placeholder for no data (for whatever reasons)
-      if (record.longlat.x !==181 || record.longlat.y !==91) {
-        vesselData.recordTime.push((new Date(record.report_time)).getTime() / 1e3)
-        vesselData.geoJSON.coordinates.push([record.longlat.x, record.longlat.y])      } else {
-        console.log('we have one invalid record for ' + record.mmsi)
-      }
+       vesselData.recordTime.push((new Date(record.report_time)).getTime() / 1e3)
+      vesselData.geoJSON.coordinates.push([record.longlat.x, record.longlat.y])
     })
     return vesselData
   }
