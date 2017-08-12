@@ -673,11 +673,25 @@
         return vessel
       },
       goWebWorker: function (currentVessel) {
-        if (this.info.dataProcessInfo.isUsingWebWorker) {
+        let svgifyFunc = (vesselRecords => {
 
-        } else {
-          return this.svgifyPath(currentVessel)
-        }
+          let x = 0
+          while (x < vesselRecords.length) {
+            // there gotta be a smarter way then re-write the single longest function here again...
+
+            x++
+          }
+        })
+
+        const actions = [
+          {message: 'func2', func: svgifyFunc},
+        ]
+
+        let worker = this.$worker.create(actions)
+
+        worker.postMessage('func2', [this.$data.rawData])
+          .then(console.info) // logs 'Worker 3: Working on func3'
+          .catch(console.error) // logs any possible error
       },
       processData: function () {
         this.info.loadingInfo.isLoading = true
@@ -689,15 +703,19 @@
         this.info.dataProcessInfo.processProgress = 0
         let vueInstance = this
 
-        // do while >> for >> forEach
-        let i = 0
-        while (i < vueInstance.rawData.length) {
-          let currentVessel = vueInstance.rawData[i]
-          vueInstance.processedData[currentVessel.mmsi] = {
-            mmsi: currentVessel.mmsi,
-            records: vueInstance.goWebWorker(currentVessel)
+        if (this.info.dataProcessInfo.isUsingWebWorker) {
+          this.goWebWorker()
+        } else {
+          // do while >> for >> forEach
+          let i = 0
+          while (i < vueInstance.rawData.length) {
+            let currentVessel = vueInstance.rawData[i]
+            vueInstance.processedData[currentVessel.mmsi] = {
+              mmsi: currentVessel.mmsi,
+              records: vueInstance.svgifyPath(currentVessel)
+            }
+            i++
           }
-          i++
         }
 
         let endTime = window.performance.now()
