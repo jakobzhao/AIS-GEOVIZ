@@ -22,9 +22,9 @@
         <button @click="updateVesselRecordTest()">UpdateData</button>
         <!--        <button @click="toggleDrawing()">Toggle drawing</button>
                 <button @click="pixiWormBox()">Open W-box </button>
-                <button @click="drawData()">draw vessel </button>
-                <button @click="processData()">Prep Data</button>-->
 
+                <button @click="processData()">Prep Data</button>-->
+        <button @click="drawData()">draw vessel </button>
       </div>
       <div>Long: {{info.currentView.split(',')[0]}}</div>
       <div>Later: {{info.currentView.split(',')[1]}}</div>
@@ -32,27 +32,30 @@
       <div>Projection: {{info.currentProjection}}</div>
       <div>info.isVisible: {{info.isVisible}}</div>
       <div>info.isRedrawing: {{info.isRedrawing}}</div>
-      <div>all vessel: {{info.totalVessel}}</div>
-      <div>visible vessel: {{info.totalVessel - info.invisibleVessel}}</div>
+      <div>all vessel: {{info.dataProcessInfo.totalVessel}}</div>
+      <div>visible vessel: {{info.dataProcessInfo.totalVessel - info.dataProcessInfo.invisibleVessel}}</div>
+      <div>processing progress : {{(info.dataProcessInfo.processProgress * 100 | 0)}}%</div>
+      <div>last progress time : {{info.dataProcessInfo.lastProcessDuration}}ms</div>
       <div id="statsMeter"></div>
     </div>
 
     <div class="fill-screen"
-         v-show="info.isLoading">
+         v-show="info.loadingInfo.isLoading">
       <div id="loading-info" class="full-screen"></div>
       <div class="full-screen" id="loading-info-container">
         <div>
-          <h2>{{info.loadingText}}</h2>
+          <h2>{{info.loadingInfo.loadingText}}</h2>
+          <!--this might not work w/o vue.nextTick-->
+          <el-progress type="circle" :percentage="this.info.dataProcessInfo.processProgress"></el-progress>
         </div>
       </div>
-
     </div>
 
-    <el-dialog title="Welcome to GEOVIZ - AIS Vessel Visualization" v-model="info.isWelcomeDVisible" size="small" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
-      <p>This is a project of abc</p>
+    <el-dialog title="Welcome to GEOVIZ - AIS Vessel Visualization" v-model="info.loadingInfo.isWelcomeDVisible" size="small" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
+      <p>This is a project for Likun's master program</p>
       <p>Please use Chrome for best user experience</p>
       <p slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="info.isWelcomeDVisible = false">Confirm</el-button>
+        <el-button type="primary" @click="info.loadingInfo.isWelcomeDVisible = false">Confirm</el-button>
       </p>
     </el-dialog>
 
@@ -88,14 +91,19 @@
           isVisible: true,
           isRedrawing: false,
           isMobile: false,
-          isRemoveInvalidData: false,
-          isLoading: false,
-          isWelcomeDVisible: false,
-          totalVessel: 0,
-          invisibleVessel: 0,
-          invisibleVesselList: [],
-          processProgress: 0.00,
-          loadingText: 'test'
+          dataProcessInfo: {
+            isRemoveInvalidData: false,
+            totalVessel: 0,
+            invisibleVessel: 0,
+            invisibleVesselList: [],
+            processProgress: 0.00,
+            lastProcessDuration: 0
+          },
+          loadingInfo: {
+            isWelcomeDVisible: false,
+            isLoading: false,
+            loadingText: 'Processing data...'
+          }
         },
         params: {
           DEBOUNCE_WAIT: 500,
@@ -495,7 +503,7 @@
       },
       svgifyPath: function (vessel) {
         // get geoStreamed points with timestamps
-        vessel.records = this.info.isRemoveInvalidData ? this.removeInvalidData(vessel.records) : vessel.records
+        vessel.records = this.info.dataProcessInfo.isRemoveInvalidData ? this.removeInvalidData(vessel.records) : vessel.records
         let geoStreamedPoint = this.vesseLonglatToPixel(vessel)
         let svgGeoPath = this.path.context(null)
         let svgString = svgGeoPath(vessel.geoJSON)
@@ -613,13 +621,13 @@
               x++
             }
 
-            this.info.processProgress += 1 / this.info.totalVessel
+            this.info.dataProcessInfo.processProgress += 1 / this.info.dataProcessInfo.totalVessel
             return newLongLat
           } else {
             // this vessel has no route pts under current projection + scale (negative x y value)
-            this.info.invisibleVessel += 1
-            this.info.invisibleVesselList.push(vessel.mmsi)
-            this.info.processProgress += 1 / this.info.totalVessel
+            this.info.dataProcessInfo.invisibleVessel += 1
+            this.info.dataProcessInfo.invisibleVesselList.push(vessel.mmsi)
+            this.info.dataProcessInfo.processProgress += 1 / this.info.dataProcessInfo.totalVessel
             return []
           }
         } else {
@@ -627,9 +635,9 @@
           if (this.params.DEVMODE > 10) {
             console.log(vessel.mmsi + ' is not visible')
           }
-          this.info.invisibleVessel += 1
-          this.info.invisibleVesselList.push(vessel.mmsi)
-          this.info.processProgress += 1 / this.info.totalVessel
+          this.info.dataProcessInfo.invisibleVessel += 1
+          this.info.dataProcessInfo.invisibleVesselList.push(vessel.mmsi)
+          this.info.dataProcessInfo.processProgress += 1 / this.info.dataProcessInfo.totalVessel
           return []
         }
       },
@@ -644,12 +652,15 @@
         return vessel
       },
       processData: function () {
+        this.info.loadingInfo.isLoading = true
+        let startTime = window.performance.now()
         let vueInstance = this
-        vueInstance.info.invisibleVessel = 0
+        vueInstance.info.dataProcessInfo.invisibleVessel = 0
         vueInstance.rawData = aisData
-        vueInstance.info.totalVessel = aisData.length
+        vueInstance.info.dataProcessInfo.totalVessel = aisData.length
 
         vueInstance.processedData = {}
+        vueInstance.info.dataProcessInfo.processProgress = 0
 
         // do while >> for >> forEach
         let i = 0
@@ -661,6 +672,11 @@
           }
           i++
         }
+        this.info.loadingInfo.isLoading = false
+        let endTime = window.performance.now()
+        let processDuration = (endTime - startTime) | 0
+        vueInstance.info.dataProcessInfo.lastProcessDuration = processDuration
+        this.$message(`All data of ${this.info.dataProcessInfo.totalVessel} vessels processed in  ${processDuration} ms`);
       },
       drawData: function () {
         this.info.isVisible = true
@@ -669,9 +685,9 @@
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
-        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? vueInstance.info.totalVessel : 100
+        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? vueInstance.info.dataProcessInfo.totalVessel : 100
         let vesselNameList = Object.keys(vueInstance.processedData)
-        let sprites = new PIXI.particles.ParticleContainer(vueInstance.info.totalVessel, {
+        let sprites = new PIXI.particles.ParticleContainer(vueInstance.info.dataProcessInfo.totalVessel, {
           scale: true,
           position: true,
           rotation: true,
@@ -774,7 +790,7 @@
       this.onUserInput()
       this.info.currentView = this.globe.orientation()
       this.addStatsMeter()
-      this.info.isWelcomeDVisible = true
+      this.info.loadingInfo.isWelcomeDVisible = true
       // this.drawData()
       // have to move here as this.globe.orientation() seems to create a race condition and initScale will get a 0 if executed immediately after this.globe.orientation()
       this.info.initScale = (this.info.currentView.split(','))[2]
