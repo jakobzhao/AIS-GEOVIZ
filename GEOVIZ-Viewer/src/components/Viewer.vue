@@ -51,7 +51,7 @@
       <div>processing progress : {{(info.dataProcessInfo.processProgress * 100 | 0)}}%</div>
       <div>last progress time : {{info.dataProcessInfo.lastProcessDuration}}ms</div>
       <div>isLoading : {{info.loadingInfo.isLoading}}</div>
-
+      <div>currentTIme : {{info.pixiInfo.drawingCurrentTime | showTime}}</div>
     </div>
 
     <div class="fill-screen"
@@ -302,7 +302,6 @@
         d3.select('#display').call(zoom)
       },
       pixiWormBox: function () {
-        let vueInstance = this
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
@@ -320,18 +319,13 @@
         function buildSprites () {
 // create an array to store all the sprites
           maggots = []
-
           for (let i = 0; i < totalSprites; i++) {
-
             // create a new Sprite
             let dude = PIXI.Sprite.fromImage('static/maggot.png')
             dude.alpha = 0.5
-
             dude.tint = Math.random() * 0xE8D4CD
-
             // set the anchor point so the texture is centerd on the sprite
             dude.anchor.set(0.5)
-
             // different maggots, different sizes
             dude.scale.set(0.1 + Math.random() * 0.03)
 
@@ -372,9 +366,8 @@
           this.stats.begin()
           // increment the ticker
           delta = Math.min(delta, 5)
-
-          // destroy old and create new
-          if (vueInstance.info.pixiInfo.isRedrawing) {
+            // destroy old and create new
+          if (this.info.pixiInfo.isRedrawing) {
             // destroy old and create new
             while (sprites.children[0]) {
               sprites.removeChild(sprites.children[0])
@@ -820,13 +813,16 @@
                 vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x);
               }
               vessel.currentIndex += 1
-
             }
           } else {
             sprites.visible = false
           }
+          vueInstance.info.pixiInfo.drawingCurrentTime += 1800
           this.stats.end()
         })
+      },
+      test: function (value) {
+        alert(value)
       }
     },
     mounted: function () {
@@ -844,13 +840,19 @@
       this.info.currentView = this.globe.orientation()
       this.addStatsMeter()
       this.info.loadingInfo.isWelcomeDVisible = true
-      // this.drawData()
+      // manually set these values for now
+      this.info.pixiInfo.drawingStartTime = 1501977600 //new Date('2017-08-06').getTime()/1e3
+      this.info.pixiInfo.drawingCurrentTime = 1501977600 //new Date('2017-08-06').getTime()/1e3
+      this.info.pixiInfo.drawingEndTime = 1502150400 //new Date('2017-08-08').getTime()/1e3
       // have to move here as this.globe.orientation() seems to create a race condition and initScale will get a 0 if executed immediately after this.globe.orientation()
       this.info.initScale = (this.info.currentView.split(','))[2]
     },
     filters: {
       startCase: function (value) {
         return _.startCase(value)
+      },
+      showTime: function (timeInSec) {
+        return new Date(timeInSec * 1e3).toISOString()
       }
     }
   }
