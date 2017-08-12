@@ -12,17 +12,26 @@
 
     <div id="debug-info">
       <div>
-
-        <el-button-group>
-          <el-button
-                  type="primary"
-                  v-for="projection in params.PROJECTION_LIST"
-                  :key="projection"
-                  @click="changeProjection(projection)"
-                  :disabled="projection === info.currentProjection">
-            {{projection | startCase}}
+        <el-dropdown style="padding-left: 200px"
+                     trigger="click"
+                     @command="handleChangeProject">
+          <el-button type="primary">
+            {{info.currentProjection | startCase}}
+            <i class="el-icon-caret-bottom el-icon--right"></i>
           </el-button>
-        </el-button-group>
+          <el-dropdown-menu slot="dropdown">
+            <el-dropdown-item
+              v-for="projection in params.PROJECTION_LIST"
+              :key="projection"
+              :command="projection"
+              :disabled="info.currentProjection === projection">
+            {{projection | startCase}}
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </el-dropdown>
+
+
+
 
         <button @click="geoStreamTest()">Line Test</button>
         <button @click="updateVesselRecordTest()">UpdateData</button>
@@ -42,7 +51,7 @@
       <div>visible vessel: {{info.dataProcessInfo.totalVessel - info.dataProcessInfo.invisibleVessel}}</div>
       <div>processing progress : {{(info.dataProcessInfo.processProgress * 100 | 0)}}%</div>
       <div>last progress time : {{info.dataProcessInfo.lastProcessDuration}}ms</div>
-      <div id="statsMeter"></div>
+
     </div>
 
     <div class="fill-screen"
@@ -51,8 +60,6 @@
       <div class="full-screen" id="loading-info-container">
         <div>
           <h2>{{info.loadingInfo.loadingText}}</h2>
-          <!--this might not work w/o vue.nextTick-->
-          <el-progress type="circle" :percentage="this.info.dataProcessInfo.processProgress"></el-progress>
         </div>
       </div>
     </div>
@@ -159,7 +166,7 @@
         this.stats = new Stats()
         this.stats.domElement.style.position = 'absolute'
         this.stats.domElement.style.top = '0px'
-        //document.getElementsByName('#statsMeter').appendChild(this.stats.domElement)
+        this.stats.domElement.id = 'statsMeter'
         document.body.appendChild(this.stats.domElement)
       },
       toggleDrawing: function () {
@@ -471,6 +478,10 @@
         }
         this.correctedStream = correctedStream
       },
+      handleChangeProject: function (command) {
+        // http://element.eleme.io/#/en-US/component/dropdown
+        this.changeProjection(command)
+      },
       changeProjection: function (newProjection) {
         if (newProjection !== this.info.currentProjection) {
           if (this.params.DEVMODE > 10) console.log('change projection, new projection= ' + _.snakeCase(newProjection))
@@ -660,13 +671,12 @@
       processData: function () {
         this.info.loadingInfo.isLoading = true
         let startTime = window.performance.now()
+        this.info.dataProcessInfo.invisibleVessel = 0
+        this.rawData = aisData
+        this.info.dataProcessInfo.totalVessel = aisData.length
+        this.processedData = {}
+        this.info.dataProcessInfo.processProgress = 0
         let vueInstance = this
-        vueInstance.info.dataProcessInfo.invisibleVessel = 0
-        vueInstance.rawData = aisData
-        vueInstance.info.dataProcessInfo.totalVessel = aisData.length
-
-        vueInstance.processedData = {}
-        vueInstance.info.dataProcessInfo.processProgress = 0
 
         // do while >> for >> forEach
         let i = 0
@@ -678,11 +688,13 @@
           }
           i++
         }
-        this.info.loadingInfo.isLoading = false
+
         let endTime = window.performance.now()
         let processDuration = (endTime - startTime) | 0
-        vueInstance.info.dataProcessInfo.lastProcessDuration = processDuration
-        this.$message(`All data of ${this.info.dataProcessInfo.totalVessel} vessels processed in  ${processDuration} ms`);
+        this.info.dataProcessInfo.lastProcessDuration = processDuration
+        this.$message(`All data of ${this.info.dataProcessInfo.totalVessel} vessels processed in  ${processDuration} ms`)
+        this.info.loadingInfo.isLoading = false
+
       },
       drawData: function () {
         this.info.isVisible = true
@@ -812,15 +824,24 @@
 
 <style lang="scss" rel="stylesheet/scss">
   /*TODO: change to BEM style, next time...*/
+  $font-stack: 'Ubuntu', Helvetica, Arial, sans-serif !important;
   @import url('https://fonts.googleapis.com/css?family=Ubuntu:500');
-
-  .btn {
-    font-family: 'Ubuntu', Helvetica, Arial, sans-serif !important;
-  }
 
   #debug-info {
     position: absolute;
     color: white;
+  }
+
+  #debug-info button > span, .el-dropdown-menu__item{
+      font-family: $font-stack;
+      font-size: 1.1em;
+      color: white;
+  }
+
+  .el-dropdown-menu {
+    background-color: dodgerblue;
+    border-color: dodgerblue;
+    border-radius: 8px;
   }
 
   #crosshair-background {
