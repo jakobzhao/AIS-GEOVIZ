@@ -20,10 +20,10 @@
         </button>
         <button @click="geoStreamTest()">Line Test</button>
         <button @click="updateVesselRecordTest()">UpdateData</button>
-<!--        <button @click="toggleDrawing()">Toggle drawing</button>
-        <button @click="pixiWormBox()">Open W-box </button>
-        <button @click="drawData()">draw vessel </button>
-        <button @click="processData()">Prep Data</button>-->
+        <!--        <button @click="toggleDrawing()">Toggle drawing</button>
+                <button @click="pixiWormBox()">Open W-box </button>
+                <button @click="drawData()">draw vessel </button>
+                <button @click="processData()">Prep Data</button>-->
 
       </div>
       <div>Long: {{info.currentView.split(',')[0]}}</div>
@@ -508,47 +508,66 @@
             checkResult.length === 0 ? console.log() : console.log('something not right, ' + checkResult)
           }
 
+          // compare and merge svg-generated pts with geoStream generated pts
+          // TODO: combine some of these loops?
+          let anchorPtsIndex = []
+          let newLongLat = []
           let j = 0
-          while (j < geoStreamedPoint.length) {
-            let currentPixelLocArray = [geoStreamedPoint[j][0], geoStreamedPoint[j][1]]
-            let k = 0
-            while (k < longlat.length) {
-              if (_.isEqual(currentPixelLocArray, longlat[k].xy)) {
-                longlat[k].timeStamp = geoStreamedPoint[j][2]
-                longlat[k].isAnchor = true
+          geoStreamLoop:
+            while (j < geoStreamedPoint.length) {
+              // for pts with same longlat but different timestamp
+              if (j !== 0) {
+                if (geoStreamedPoint[j][0] === geoStreamedPoint[j - 1][0] &&
+                  geoStreamedPoint[j][1] === geoStreamedPoint[j - 1][1]) {
+                  let newLonglatItem = {
+                    isAnchor: true,
+                    timeStamp: geoStreamedPoint[j][2],
+                    xy: [geoStreamedPoint[j][0], geoStreamedPoint[j][1]]
+                  }
+                  anchorPtsIndex.push(j)
+                  newLongLat.push(newLonglatItem)
+                  j++
+                  continue
+                }
               }
-              k++
+              let currentPixelLocValue = [geoStreamedPoint[j][0], geoStreamedPoint[j][1]].join().toString()
+              svgPtsLoop:
+                while (longlat.length) {
+                  if (currentPixelLocValue === (longlat[0].xy).join()) {
+                    // svg-generated path will eliminate/overwrite pts with same longlat but different timestamp...
+                    anchorPtsIndex.push(j)
+                    let newLonglatItem = {
+                      isAnchor: true,
+                      timeStamp: geoStreamedPoint[j][2],
+                      xy: [geoStreamedPoint[j][0], geoStreamedPoint[j][1]]
+                    }
+                    newLongLat.push(newLonglatItem)
+                    longlat.shift()
+                    j++
+                    continue geoStreamLoop
+                  } else {
+                    if (anchorPtsIndex.length) {
+                      newLongLat.push(longlat[0])
+                      longlat.shift()
+                    } else {
+                      // filter out leading pts w/o timestamp
+                      longlat.shift()
+                    }
+                  }
+                }
+              j++
             }
-            j++
-          }
+          console.log(vessel.mmsi)
+          console.info(geoStreamedPoint)
+          console.log(newLongLat)
+          console.log(anchorPtsIndex)
 
-          // drawing svg
-          if (this.params.DEVMODE > 200) {
-            if (svgString) {
-              let svg = document.getElementById('foreground') //Get svg element
-              let newElement = document.createElementNS('http://www.w3.org/2000/svg', 'path') //Create a path in SVG's namespace
-              newElement.setAttribute('d', svgString) //Set path's data
-              newElement.style.stroke = 'red' //Set stroke colour
-              newElement.style.fill = 'none'
-              newElement.style.strokeWidth = '2px' //Set stroke width
-              svg.appendChild(newElement)
-            }
-          } else if (this.params.DEVMODE > 10) {
-            let newUntimedPoint = longlat.filter(record => {
-              return !record.isAnchor
-            })
-            if (newUntimedPoint.length) {
-              console.log('find new pts w/o timestamp, ship ' + vessel.mmsi)
-              console.info(newUntimedPoint)
-              console.log('while geoStream yields')
-              console.info(geoStreamedPoint)
-              console.log('and svg yields')
-              console.info(longlat)
-            }
-          }
-
-          return longlat
+          return newLongLat
         } else {
+          // this vessel has no route pts under current projection + scale
+          if (this.params.DEVMODE > 10) {
+            console.log(vessel.mmsi + ' is not visible')
+          }
           this.info.invisibleVessel += 1
           return []
         }
@@ -632,7 +651,7 @@
         app.ticker.add((delta) => {
           this.stats.begin()
           // increment the ticker
-         // delta = Math.min(delta, 5)
+          // delta = Math.min(delta, 5)
           delta = Math.max(delta, 200000)
 
           // destroy old and create new
