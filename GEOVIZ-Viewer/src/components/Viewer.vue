@@ -25,12 +25,10 @@
               :key="projection"
               :command="projection"
               :disabled="info.currentProjection === projection">
-            {{projection | startCase}}
+              {{projection | startCase}}
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
-
-
 
 
         <button @click="geoStreamTest()">Line Test</button>
@@ -107,6 +105,9 @@
           pixiInfo: {
             isVisible: true,
             isRedrawing: false,
+            drawingStartTime: 0,
+            drawingEndTime: 0,
+            drawingCurrentTime: 0
           },
           isMobile: false,
           dataProcessInfo: {
@@ -813,6 +814,11 @@
               }
               vessel.x = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[0]
               vessel.y = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[1]
+              if (vessel.currentIndex + 1 < vueInstance.processedData[vessel.mmsi].records.length) {
+                let x2 = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1].xy[0]
+                let y2 = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1].xy[1]
+                vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x);
+              }
               vessel.currentIndex += 1
 
             }
@@ -861,10 +867,10 @@
     color: white;
   }
 
-  #debug-info button > span, .el-dropdown-menu__item{
-      font-family: $font-stack;
-      font-size: 1.1em;
-      color: white;
+  #debug-info button > span, .el-dropdown-menu__item {
+    font-family: $font-stack;
+    font-size: 1.1em;
+    color: white;
   }
 
   .el-dropdown-menu {
