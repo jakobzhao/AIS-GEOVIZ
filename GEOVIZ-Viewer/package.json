@@ -16,6 +16,7 @@
     "d3": "^4.10.0",
     "d3-geo": "^1.6.4",
     "d3-geo-projection": "^2.2.0",
+    "element-ui": "^1.4.2",
     "es6-promise": "^4.1.1",
     "lodash": "^4.17.4",
     "pixi.js": "^4.5.4",
