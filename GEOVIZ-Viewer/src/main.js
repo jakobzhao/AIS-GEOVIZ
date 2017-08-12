@@ -5,9 +5,11 @@ import 'element-ui/lib/theme-default/index.css'
 import './assets/style.scss'
 import App from './App'
 import router from './router'
+import VueWorker from 'vue-worker'
+
 
 Vue.use(ElementUI, { locale })
-
+Vue.use(VueWorker)
 /*//  google analytics support
 router.afterEach(function (transition) {
   window.ga('send', {

@@ -40,6 +40,7 @@
 
                 <button @click="processData()">Prep Data</button>-->
         <button @click="drawData()">draw vessel </button>
+        <button @click="info.loadingInfo.isLoading = true">show it</button>
       </div>
       <div>Long: {{info.currentView.split(',')[0]}}</div>
       <div>Later: {{info.currentView.split(',')[1]}}</div>
@@ -51,6 +52,7 @@
       <div>visible vessel: {{info.dataProcessInfo.totalVessel - info.dataProcessInfo.invisibleVessel}}</div>
       <div>processing progress : {{(info.dataProcessInfo.processProgress * 100 | 0)}}%</div>
       <div>last progress time : {{info.dataProcessInfo.lastProcessDuration}}ms</div>
+      <div>isLoading : {{info.loadingInfo.isLoading}}</div>
 
     </div>
 
@@ -60,6 +62,7 @@
       <div class="full-screen" id="loading-info-container">
         <div>
           <h2>{{info.loadingInfo.loadingText}}</h2>
+          <h2>{{info.dataProcessInfo.processProgress}}</h2>
         </div>
       </div>
     </div>
@@ -106,6 +109,7 @@
           isMobile: false,
           dataProcessInfo: {
             isRemoveInvalidData: false,
+            isUsingWebWorker: false,
             totalVessel: 0,
             invisibleVessel: 0,
             invisibleVesselList: [],
@@ -668,6 +672,13 @@
         }
         return vessel
       },
+      goWebWorker: function (currentVessel) {
+        if (this.info.dataProcessInfo.isUsingWebWorker) {
+
+        } else {
+          return this.svgifyPath(currentVessel)
+        }
+      },
       processData: function () {
         this.info.loadingInfo.isLoading = true
         let startTime = window.performance.now()
@@ -684,7 +695,7 @@
           let currentVessel = vueInstance.rawData[i]
           vueInstance.processedData[currentVessel.mmsi] = {
             mmsi: currentVessel.mmsi,
-            records: vueInstance.svgifyPath(currentVessel)
+            records: vueInstance.goWebWorker(currentVessel)
           }
           i++
         }
@@ -694,7 +705,6 @@
         this.info.dataProcessInfo.lastProcessDuration = processDuration
         this.$message(`All data of ${this.info.dataProcessInfo.totalVessel} vessels processed in  ${processDuration} ms`)
         this.info.loadingInfo.isLoading = false
-
       },
       drawData: function () {
         this.info.isVisible = true
@@ -770,6 +780,7 @@
             buildSprites()
             this.info.isRedrawing = false
             this.info.isVisible = true
+            this.$forceUpdate()
           }
 
           if (this.info.isVisible) {
@@ -790,8 +801,6 @@
           }
           this.stats.end()
         })
-        app.ticker.minFPS = 1
-        //requestAnimationFrame( this.pixiWormBox )
       }
     },
     mounted: function () {
