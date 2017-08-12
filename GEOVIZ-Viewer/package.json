@@ -12,7 +12,6 @@
   "dependencies": {
     "axios": "^0.16.2",
     "bluebird": "^3.5.0",
-    "bootstrap-vue": "^0.18.0",
     "d3": "^4.10.0",
     "d3-geo": "^1.6.4",
     "d3-geo-projection": "^2.2.0",
