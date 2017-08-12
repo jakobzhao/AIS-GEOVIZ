@@ -492,7 +492,9 @@
               timeStamp: null,
               isAnchor: false
             }
-            longlat.push(result)
+            if (result.xy[0] > 0 && result.xy[1] >0) {
+              longlat.push(result)
+            }
             i++
           }
 
@@ -509,34 +511,18 @@
             checkResult.length === 0 ? console.log() : console.log('something not right, ' + checkResult)
           }
 
-          // compare and merge svg-generated pts with geoStream generated pts
-          // TODO: need to refactor this nested loop
-          let anchorPtsIndex = []
-          let newLongLat = []
-          let j = 0
-          geoStreamLoop:
-            while (j < geoStreamedPoint.length) {
-              // for pts with same longlat but different timestamp
-              if (j !== 0) {
-                if (geoStreamedPoint[j][0] === geoStreamedPoint[j - 1][0] &&
-                  geoStreamedPoint[j][1] === geoStreamedPoint[j - 1][1]) {
-                  let newLonglatItem = {
-                    isAnchor: true,
-                    timeStamp: geoStreamedPoint[j][2],
-                    xy: [geoStreamedPoint[j][0], geoStreamedPoint[j][1]]
-                  }
-                  newLongLat.push(newLonglatItem)
-                  anchorPtsIndex.push(newLongLat.length - 1)
-                  j++
-                  continue
-                }
-              }
-              let currentPixelLocValue = [geoStreamedPoint[j][0], geoStreamedPoint[j][1]].join().toString()
-              let loopCounter = 0
-              svgPtsLoop:
-                while (longlat.length) {
-                  if (currentPixelLocValue === (longlat[0].xy).join()) {
-                    // svg-generated path will eliminate/overwrite pts with same longlat but different timestamp...
+          if (longlat.length) {
+            // compare and merge svg-generated pts with geoStream generated pts
+            // TODO: need to refactor this nested loop
+            let anchorPtsIndex = []
+            let newLongLat = []
+            let j = 0
+            geoStreamLoop:
+              while (j < geoStreamedPoint.length) {
+                // for pts with same longlat but different timestamp
+                if (j !== 0) {
+                  if (geoStreamedPoint[j][0] === geoStreamedPoint[j - 1][0] &&
+                    geoStreamedPoint[j][1] === geoStreamedPoint[j - 1][1]) {
                     let newLonglatItem = {
                       isAnchor: true,
                       timeStamp: geoStreamedPoint[j][2],
@@ -544,33 +530,55 @@
                     }
                     newLongLat.push(newLonglatItem)
                     anchorPtsIndex.push(newLongLat.length - 1)
-                    longlat.shift()
                     j++
-                    continue geoStreamLoop
-                  } else {
-                    if (anchorPtsIndex.length){
-                      if (loopCounter < longlat.length) {
-                        loopCounter += 1
-                      } else {
-                        // no matching result for current geoStream pts, pass
-                        loopCounter = 0
-                        j++
-                        continue geoStreamLoop
-                      }
-                    } else {
-                      // filter out leading pts w/o timestamp
-                      longlat.shift()
-                    }
+                    continue
                   }
                 }
-              j++
-            }
-          console.log(vessel.mmsi)
-          console.info(geoStreamedPoint)
-          console.log(newLongLat)
-          console.log(anchorPtsIndex)
-
-          return newLongLat
+                let currentPixelLocValue = [geoStreamedPoint[j][0], geoStreamedPoint[j][1]].join().toString()
+                let loopCounter = 0
+                svgPtsLoop:
+                  while (longlat.length) {
+                    if (currentPixelLocValue === (longlat[0].xy).join()) {
+                      // svg-generated path will eliminate/overwrite pts with same longlat but different timestamp...
+                      let newLonglatItem = {
+                        isAnchor: true,
+                        timeStamp: geoStreamedPoint[j][2],
+                        xy: [geoStreamedPoint[j][0], geoStreamedPoint[j][1]]
+                      }
+                      newLongLat.push(newLonglatItem)
+                      anchorPtsIndex.push(newLongLat.length - 1)
+                      longlat.shift()
+                      j++
+                      continue geoStreamLoop
+                    } else {
+                      if (anchorPtsIndex.length){
+                        if (loopCounter < longlat.length) {
+                          loopCounter += 1
+                        } else {
+                          // no matching result for current geoStream pts, pass
+                          loopCounter = 0
+                          j++
+                          continue geoStreamLoop
+                        }
+                      } else {
+                        // filter out leading pts w/o timestamp
+                        longlat.shift()
+                      }
+                    }
+                  }
+                j++
+              }
+            console.log(vessel.mmsi)
+            console.info(geoStreamedPoint)
+            console.log(newLongLat)
+            console.log(anchorPtsIndex)
+            return newLongLat
+          } else {
+            // this vessel has no route pts under current projection + scale (negative x y value)
+            this.info.invisibleVessel += 1
+            this.info.invisibleVesselList.push(vessel.mmsi)
+            return []
+          }
         } else {
           // this vessel has no route pts under current projection + scale
           if (this.params.DEVMODE > 10) {
