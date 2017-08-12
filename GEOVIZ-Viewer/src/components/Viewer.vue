@@ -72,7 +72,8 @@
           isRemoveInvalidData: false,
           totalVessel: 0,
           invisibleVessel: 0,
-          invisibleVesselList: []
+          invisibleVesselList: [],
+          processProgress: 0.00
         },
         params: {
           DEBOUNCE_WAIT: 500,
@@ -590,11 +591,13 @@
               x++
             }
 
+            this.info.processProgress += 1 / this.info.totalVessel
             return newLongLat
           } else {
             // this vessel has no route pts under current projection + scale (negative x y value)
             this.info.invisibleVessel += 1
             this.info.invisibleVesselList.push(vessel.mmsi)
+            this.info.processProgress += 1 / this.info.totalVessel
             return []
           }
         } else {
@@ -604,6 +607,7 @@
           }
           this.info.invisibleVessel += 1
           this.info.invisibleVesselList.push(vessel.mmsi)
+          this.info.processProgress += 1 / this.info.totalVessel
           return []
         }
       },
