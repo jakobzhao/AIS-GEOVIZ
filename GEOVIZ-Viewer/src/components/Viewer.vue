@@ -70,7 +70,8 @@
           isRedrawing: false,
           isMobile: false,
           totalVessel: 0,
-          invisibleVessel: 0
+          invisibleVessel: 0,
+          invisibleVesselList: []
         },
         params: {
           DEBOUNCE_WAIT: 500,
@@ -509,7 +510,7 @@
           }
 
           // compare and merge svg-generated pts with geoStream generated pts
-          // TODO: combine some of these loops?
+          // TODO: need to refactor this nested loop
           let anchorPtsIndex = []
           let newLongLat = []
           let j = 0
@@ -524,31 +525,38 @@
                     timeStamp: geoStreamedPoint[j][2],
                     xy: [geoStreamedPoint[j][0], geoStreamedPoint[j][1]]
                   }
-                  anchorPtsIndex.push(j)
                   newLongLat.push(newLonglatItem)
+                  anchorPtsIndex.push(newLongLat.length - 1)
                   j++
                   continue
                 }
               }
               let currentPixelLocValue = [geoStreamedPoint[j][0], geoStreamedPoint[j][1]].join().toString()
+              let loopCounter = 0
               svgPtsLoop:
                 while (longlat.length) {
                   if (currentPixelLocValue === (longlat[0].xy).join()) {
                     // svg-generated path will eliminate/overwrite pts with same longlat but different timestamp...
-                    anchorPtsIndex.push(j)
                     let newLonglatItem = {
                       isAnchor: true,
                       timeStamp: geoStreamedPoint[j][2],
                       xy: [geoStreamedPoint[j][0], geoStreamedPoint[j][1]]
                     }
                     newLongLat.push(newLonglatItem)
+                    anchorPtsIndex.push(newLongLat.length - 1)
                     longlat.shift()
                     j++
                     continue geoStreamLoop
                   } else {
-                    if (anchorPtsIndex.length) {
-                      newLongLat.push(longlat[0])
-                      longlat.shift()
+                    if (anchorPtsIndex.length){
+                      if (loopCounter < longlat.length) {
+                        loopCounter += 1
+                      } else {
+                        // no matching result for current geoStream pts, pass
+                        loopCounter = 0
+                        j++
+                        continue geoStreamLoop
+                      }
                     } else {
                       // filter out leading pts w/o timestamp
                       longlat.shift()
@@ -569,6 +577,7 @@
             console.log(vessel.mmsi + ' is not visible')
           }
           this.info.invisibleVessel += 1
+          this.info.invisibleVesselList.push(vessel.mmsi)
           return []
         }
       },
