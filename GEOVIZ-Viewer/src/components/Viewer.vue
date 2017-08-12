@@ -83,7 +83,7 @@
           REDRAW_WAIT: 5,
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
           VIEW: micro.view(),
-          DEVMODE: 11
+          DEVMODE: 0
         },
         earthTopo: null,
         globe: null,
@@ -576,7 +576,8 @@
                   }
                 j++
               }
-            if (this.params.DEVMODE > 10) {
+              // console.log is like cout, an expensive operation
+            if (this.params.DEVMODE > 50) {
               console.log(vessel.mmsi)
               console.info(geoStreamedPoint)
               console.log(newLongLat)
@@ -660,8 +661,8 @@
           for (let i = 0; i < totalSprites; i++) {
             if (vueInstance.processedData[vesselNameList[i]].records.length !== 0) {
               // create a new Sprite
-              let vessel = PIXI.Sprite.fromImage('static/maggot.png')
-              vessel.alpha = 0.8
+              let vessel = PIXI.Sprite.fromImage('static/vessel.png')
+              vessel.alpha = 0.3
               vessel.scale.set(1)
               vessel.tint = Math.random() * 0xE8D4CD
 
@@ -742,18 +743,9 @@
       this.info.currentView = this.globe.orientation()
       this.addStatsMeter()
 
-      /*
-      * TODO: need add a async request here with no data filter
-      *      // store recordTime in second to save space
-      // division is still faster https://jsperf.com/slicevsdivision
-      // [181, 91] is an impossible longlat, thus was being used as placeholder for no data (for whatever reasons)
-      if (record.longlat.x !== 181 || record.longlat.y !== 91) {
-      * */
-
-      this.drawData()
+      // this.drawData()
       // have to move here as this.globe.orientation() seems to create a race condition and initScale will get a 0 if executed immediately after this.globe.orientation()
       this.info.initScale = (this.info.currentView.split(','))[2]
-      //this.pixiWormBox()
     },
     filters: {
       startCase: function (value) {
