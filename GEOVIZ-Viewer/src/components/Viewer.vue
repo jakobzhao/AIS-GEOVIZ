@@ -12,12 +12,18 @@
 
     <div id="debug-info">
       <div>
-        <button class="btn btn-primary"
-                v-for="projection in params.PROJECTION_LIST"
-                :key="projection"
-                @click="changeProjection(projection)">
-          {{projection | startCase}}
-        </button>
+
+        <el-button-group>
+          <el-button
+                  type="primary"
+                  v-for="projection in params.PROJECTION_LIST"
+                  :key="projection"
+                  @click="changeProjection(projection)"
+                  :disabled="projection === info.currentProjection">
+            {{projection | startCase}}
+          </el-button>
+        </el-button-group>
+
         <button @click="geoStreamTest()">Line Test</button>
         <button @click="updateVesselRecordTest()">UpdateData</button>
         <!--        <button @click="toggleDrawing()">Toggle drawing</button>
