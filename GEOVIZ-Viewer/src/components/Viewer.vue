@@ -37,6 +37,25 @@
       <div id="statsMeter"></div>
     </div>
 
+    <div class="fill-screen"
+         v-show="info.isLoading">
+      <div id="loading-info" class="full-screen"></div>
+      <div class="full-screen" id="loading-info-container">
+        <div>
+          <h2>{{info.loadingText}}</h2>
+        </div>
+      </div>
+
+    </div>
+
+    <el-dialog title="Welcome to GEOVIZ - AIS Vessel Visualization" v-model="info.isWelcomeDVisible" size="small" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
+      <p>This is a project of abc</p>
+      <p>Please use Chrome for best user experience</p>
+      <p slot="footer" class="dialog-footer">
+        <el-button type="primary" @click="info.isWelcomeDVisible = false">Confirm</el-button>
+      </p>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -70,10 +89,13 @@
           isRedrawing: false,
           isMobile: false,
           isRemoveInvalidData: false,
+          isLoading: false,
+          isWelcomeDVisible: false,
           totalVessel: 0,
           invisibleVessel: 0,
           invisibleVesselList: [],
-          processProgress: 0.00
+          processProgress: 0.00,
+          loadingText: 'test'
         },
         params: {
           DEBOUNCE_WAIT: 500,
@@ -577,7 +599,7 @@
                   }
                 j++
               }
-              // console.log is like cout, an expensive operation
+            // console.log is like cout, an expensive operation
             if (this.params.DEVMODE > 50) {
               console.log(vessel.mmsi)
               console.info(geoStreamedPoint)
@@ -741,12 +763,18 @@
     mounted: function () {
       // enlarge charting dom to full screen
       d3.selectAll('.fill-screen').attr('width', this.params.VIEW.width).attr('height', this.params.VIEW.height)
+      let fullScreenDOM = document.querySelectorAll('.full-screen')
+      let vueInstance = this
+      fullScreenDOM.forEach(dom => {
+        dom.style.height = vueInstance.params.VIEW.height + 'px'
+        dom.style.width = vueInstance.params.VIEW.width + 'px'
+      })
       this.setEarthTopo()
       this.drawGlobe()
       this.onUserInput()
       this.info.currentView = this.globe.orientation()
       this.addStatsMeter()
-
+      this.info.isWelcomeDVisible = true
       // this.drawData()
       // have to move here as this.globe.orientation() seems to create a race condition and initScale will get a 0 if executed immediately after this.globe.orientation()
       this.info.initScale = (this.info.currentView.split(','))[2]
@@ -784,6 +812,21 @@
     top: 0;
     left: 0;
     /*  will-change: transform;*/
+  }
+
+  #loading-info {
+    background-color: white;
+    opacity: 0.6;
+  }
+
+  #loading-info-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: black;
   }
 
 </style>
