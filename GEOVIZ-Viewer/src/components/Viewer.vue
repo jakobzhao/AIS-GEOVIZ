@@ -69,6 +69,7 @@
           isVisible: true,
           isRedrawing: false,
           isMobile: false,
+          isRemoveInvalidData: false,
           totalVessel: 0,
           invisibleVessel: 0,
           invisibleVesselList: []
@@ -463,8 +464,15 @@
         }
         return pixelArray
       },
+      removeInvalidData: function (records) {
+        // remove longlat pts with 181, 91 coordinates
+        return records.filter(record => {
+          return record.longlat.x !== 181 && record.longlat.y !== 91
+        })
+      },
       svgifyPath: function (vessel) {
         // get geoStreamed points with timestamps
+        vessel.records = this.info.isRemoveInvalidData ? this.removeInvalidData(vessel.records) : vessel.records
         let geoStreamedPoint = this.vesseLonglatToPixel(vessel)
         let svgGeoPath = this.path.context(null)
         let svgString = svgGeoPath(vessel.geoJSON)
@@ -492,7 +500,7 @@
               timeStamp: null,
               isAnchor: false
             }
-            if (result.xy[0] > 0 && result.xy[1] >0) {
+            if (result.xy[0] > 0 && result.xy[1] > 0) {
               longlat.push(result)
             }
             i++
@@ -551,7 +559,7 @@
                       j++
                       continue geoStreamLoop
                     } else {
-                      if (anchorPtsIndex.length){
+                      if (anchorPtsIndex.length) {
                         if (loopCounter < longlat.length) {
                           loopCounter += 1
                         } else {
@@ -568,10 +576,19 @@
                   }
                 j++
               }
-            console.log(vessel.mmsi)
-            console.info(geoStreamedPoint)
-            console.log(newLongLat)
-            console.log(anchorPtsIndex)
+            if (this.params.DEVMODE > 10) {
+              console.log(vessel.mmsi)
+              console.info(geoStreamedPoint)
+              console.log(newLongLat)
+              console.log(anchorPtsIndex)
+            }
+            let x = 0
+            while (x < newLongLat.length) {
+              if (newLongLat[x].isAnchor === false)
+                alert(vessel.mmsi)
+              x++
+            }
+
             return newLongLat
           } else {
             // this vessel has no route pts under current projection + scale (negative x y value)
@@ -588,6 +605,16 @@
           this.info.invisibleVesselList.push(vessel.mmsi)
           return []
         }
+      },
+      timeStampInterpretation: function (vessel) {
+        //use geoPath + timestamp to add timestamp to pts
+        let x = 0
+        while (x < vessel.records.length) {
+          if (vessel.records[x].isAnchor === false)
+            alert(vessel.mmsi)
+          x++
+        }
+        return vessel
       },
       processData: function () {
         let vueInstance = this
