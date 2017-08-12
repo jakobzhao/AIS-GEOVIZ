@@ -46,8 +46,8 @@
       <div>Later: {{info.currentView.split(',')[1]}}</div>
       <div>Scale: {{info.currentView.split(',')[2]}}</div>
       <div>Projection: {{info.currentProjection}}</div>
-      <div>info.isVisible: {{info.isVisible}}</div>
-      <div>info.isRedrawing: {{info.isRedrawing}}</div>
+      <div>info.pixiInfo.isVisible: {{info.pixiInfo.isVisible}}</div>
+      <div>info.pixiInfo.isRedrawing: {{info.pixiInfo.isRedrawing}}</div>
       <div>all vessel: {{info.dataProcessInfo.totalVessel}}</div>
       <div>visible vessel: {{info.dataProcessInfo.totalVessel - info.dataProcessInfo.invisibleVessel}}</div>
       <div>processing progress : {{(info.dataProcessInfo.processProgress * 100 | 0)}}%</div>
@@ -104,8 +104,10 @@
           currentProjection: 'orthographic',
           currentView: '-170, 15, null',
           initScale: 0,
-          isVisible: true,
-          isRedrawing: false,
+          pixiInfo: {
+            isVisible: true,
+            isRedrawing: false,
+          },
           isMobile: false,
           dataProcessInfo: {
             isRemoveInvalidData: false,
@@ -174,7 +176,7 @@
         document.body.appendChild(this.stats.domElement)
       },
       toggleDrawing: function () {
-        this.info.isVisible = !this.info.isVisible
+        this.info.pixiInfo.isVisible = !this.info.pixiInfo.isVisible
       },
       setEarthTopo: function () {
         this.info.isMobile = micro.isMobile()
@@ -256,7 +258,7 @@
                 return
               }
               op.type = 'drag'
-              this.info.isVisible = false
+              this.info.pixiInfo.isVisible = false
 
               // replace path with low-res data
               coastline.datum(this.earthTopo.coastLo)
@@ -287,11 +289,11 @@
             op.manipulator.end()
             // click rarely happens...
             if (op.type === 'click' || op.type === 'spurious') {
-              this.info.isVisible = true
+              this.info.pixiInfo.isVisible = true
             }
             else {
               // TODO: add a _.debounce here?
-              this.info.isRedrawing = true
+              this.info.pixiInfo.isRedrawing = true
             }
             op = null  // the drag/zoom/click operation is over
 
@@ -371,18 +373,18 @@
           delta = Math.min(delta, 5)
 
           // destroy old and create new
-          if (vueInstance.info.isRedrawing) {
+          if (vueInstance.info.pixiInfo.isRedrawing) {
             // destroy old and create new
             while (sprites.children[0]) {
               sprites.removeChild(sprites.children[0])
             }
             buildSprites()
-            this.info.isRedrawing = false
-            this.info.isVisible = true
+            this.info.pixiInfo.isRedrawing = false
+            this.info.pixiInfo.isVisible = true
           }
 
           // iterate through the sprites and update their position
-          if (this.info.isVisible) {
+          if (this.info.pixiInfo.isVisible) {
             sprites.visible = true
             for (let i = 0; i < maggots.length; i++) {
               let dude = maggots[i]
@@ -493,7 +495,7 @@
           this.info.currentProjection = newProjection
           this.drawGlobe()
           this.onUserInput()
-          this.info.isRedrawing = true
+          this.info.pixiInfo.isRedrawing = true
         }
       },
       vesseLonglatToPixel: function (vessel) {
@@ -725,7 +727,7 @@
         this.info.loadingInfo.isLoading = false
       },
       drawData: function () {
-        this.info.isVisible = true
+        this.info.pixiInfo.isVisible = true
         this.processData()
         let vueInstance = this
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
@@ -788,7 +790,7 @@
           delta = Math.max(delta, 200000)
 
           // destroy old and create new
-          if (vueInstance.info.isRedrawing) {
+          if (vueInstance.info.pixiInfo.isRedrawing) {
             // destroy old and create new
             while (sprites.children[0]) {
               sprites.removeChild(sprites.children[0])
@@ -796,12 +798,12 @@
             vesselCollections = []
             vueInstance.processData()
             buildSprites()
-            this.info.isRedrawing = false
-            this.info.isVisible = true
+            this.info.pixiInfo.isRedrawing = false
+            this.info.pixiInfo.isVisible = true
             this.$forceUpdate()
           }
 
-          if (this.info.isVisible) {
+          if (this.info.pixiInfo.isVisible) {
             sprites.visible = true
             // iterate through the sprites and update their position
             for (let i = 0; i < vesselCollections.length; i++) {
