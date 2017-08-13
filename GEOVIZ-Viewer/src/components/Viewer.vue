@@ -29,16 +29,20 @@
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
-
-
+        <span>Time step</span>
+        <el-input-number
+          v-model="info.pixiInfo.drawingTimeStep"
+          style="width: 200px"
+          :min="60"
+          :max="6000"></el-input-number>
         <button @click="geoStreamTest()">Line Test</button>
         <button @click="updateVesselRecordTest()">UpdateData</button>
         <!--        <button @click="toggleDrawing()">Toggle drawing</button>
                 <button @click="pixiWormBox()">Open W-box </button>
 
                 <button @click="processData()">Prep Data</button>-->
-        <button @click="drawData()">draw vessel </button>
-        <button @click="info.loadingInfo.isLoading = true">show it</button>
+        <button @click="loadData()">draw vessel </button>
+<!--        <button @click="info.loadingInfo.isLoading = true">show it</button>-->
       </div>
       <div>Long: {{info.currentView.split(',')[0]}}</div>
       <div>Later: {{info.currentView.split(',')[1]}}</div>
@@ -52,6 +56,14 @@
       <div>last progress time : {{info.dataProcessInfo.lastProcessDuration}}ms</div>
       <div>isLoading : {{info.loadingInfo.isLoading}}</div>
       <div>currentTIme : {{info.pixiInfo.drawingCurrentTime | showTime}}</div>
+      <div>currentTIme : {{info.pixiInfo.drawingCurrentTime}}</div>
+      <div>
+        <el-progress
+          :text-inside="true"
+          :stroke-width="18"
+          :percentage="currentTimeProgress"
+          style="width: 400px"></el-progress>
+      </div>
     </div>
 
     <div class="fill-screen"
@@ -79,14 +91,12 @@
 <script>
   import _ from 'lodash'
   import ES6promise from 'es6-promise'
-
   ES6promise.polyfill()
   import axios from 'axios'
   import Promise from 'bluebird'
   import * as PIXI from 'pixi.js'
   import Stats from 'stats.js'
   import * as d3 from 'd3'
-  import aisData from '../assets/records.json'
   // temp fix till topojson start to use es6 export, https://github.com/topojson/topojson/issues/285
   import * as topojson from 'topojson/node_modules/topojson-client/src/feature'
   import * as micro from '../Utils/micro'
@@ -108,7 +118,9 @@
             drawingStartTime: 0,
             drawingEndTime: 0,
             drawingCurrentTime: 0,
-            drawingTimeStep: 180
+            drawingTimeStep: 360,
+            drawingAlpha: 0.4,
+            drawingMaxLife: 300
           },
           isMobile: false,
           dataProcessInfo: {
@@ -135,7 +147,7 @@
           REDRAW_WAIT: 5,
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
           VIEW: micro.view(),
-          DEVMODE: 500
+          DEVMODE: 0
         },
         earthTopo: null,
         globe: null,
@@ -167,6 +179,9 @@
     computed: {
       path: function () {
         return d3.geoPath().projection(this.globe.projection).pointRadius(7)
+      },
+      currentTimeProgress: function () {
+        return ((this.info.pixiInfo.drawingCurrentTime - this.info.pixiInfo.drawingStartTime) * 100 /  (this.info.pixiInfo.drawingEndTime - this.info.pixiInfo.drawingStartTime)) | 0
       }
     },
     methods: {
@@ -323,7 +338,7 @@
           for (let i = 0; i < totalSprites; i++) {
             // create a new Sprite
             let dude = PIXI.Sprite.fromImage('static/maggot.png')
-            dude.alpha = 0.5
+            dude.alpha = 0.9
             dude.tint = Math.random() * 0xE8D4CD
             // set the anchor point so the texture is centerd on the sprite
             dude.anchor.set(0.5)
@@ -367,7 +382,7 @@
           this.stats.begin()
           // increment the ticker
           delta = Math.min(delta, 5)
-            // destroy old and create new
+          // destroy old and create new
           if (this.info.pixiInfo.isRedrawing) {
             // destroy old and create new
             while (sprites.children[0]) {
@@ -609,7 +624,7 @@
                       continue geoStreamLoop
                     } else {
                       if (anchorPtsIndex.length) {
-                        if (loopCounter < longlat.length -1) {
+                        if (loopCounter < longlat.length - 1) {
                           loopCounter += 1
                         } else {
                           // no matching result for current geoStream pts, pass
@@ -631,6 +646,9 @@
               console.info(geoStreamedPoint)
               console.log(newLongLat)
               console.log(anchorPtsIndex)
+              if (newLongLat.length < 1) {
+                alert('not right')
+              }
             }
             let x = 0
             while (x < newLongLat.length) {
@@ -694,8 +712,7 @@
         this.info.loadingInfo.isLoading = true
         let startTime = window.performance.now()
         this.info.dataProcessInfo.invisibleVessel = 0
-        this.rawData = aisData
-        this.info.dataProcessInfo.totalVessel = aisData.length
+        this.info.dataProcessInfo.totalVessel = this.rawData.length
         this.processedData = {}
         this.info.dataProcessInfo.processProgress = 0
         let vueInstance = this
@@ -747,21 +764,27 @@
             if (vueInstance.processedData[vesselNameList[i]].records.length !== 0) {
               // create a new Sprite
               let vessel = PIXI.Sprite.fromImage('static/vessel.png')
-              vessel.alpha = 0.3
+              vessel.alpha = vueInstance.info.pixiInfo.drawingAlpha
               vessel.scale.set(1)
               vessel.tint = Math.random() * 0xE8D4CD
 
+              // set the anchor point so the texture is centerd on the sprite
               // set the anchor point so the texture is centerd on the sprite
               vessel.anchor.set(0.5)
 
               vessel.x = vueInstance.processedData[vesselNameList[i]].records[0].xy[0]
               vessel.y = vueInstance.processedData[vesselNameList[i]].records[0].xy[1]
-              vessel.currentIndex = 0
               vessel.mmsi = vueInstance.processedData[vesselNameList[i]].mmsi
-              if (vueInstance.processedData[vessel.mmsi].records.length > 1) {
-                let x2 = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1].xy[0]
-                let y2 = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1].xy[1]
-                vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x);
+              vessel.currentIndex = 0
+              vessel.totalLength = vueInstance.processedData[vessel.mmsi].records.length
+
+              if (vessel.totalLength > 1) {
+                vessel.next = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1]
+                let x2 = vessel.next.xy[0]
+                let y2 = vessel.next.xy[1]
+                vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x)
+              } else {
+                vessel.next = vessel
               }
 
               // create a random speed between 0 - 2, and these vesselCollections are slooww
@@ -781,7 +804,7 @@
           this.stats.begin()
           // increment the ticker
           // delta = Math.min(delta, 5)
-          delta = Math.max(delta, 200000)
+          delta = Math.min(delta, 5)
 
           // destroy old and create new
           if (vueInstance.info.pixiInfo.isRedrawing) {
@@ -794,7 +817,6 @@
             buildSprites()
             this.info.pixiInfo.isRedrawing = false
             this.info.pixiInfo.isVisible = true
-            this.$forceUpdate()
           }
 
           if (this.info.pixiInfo.isVisible) {
@@ -802,21 +824,45 @@
             // iterate through the sprites and update their position
             for (let i = 0; i < vesselCollections.length; i++) {
               let vessel = vesselCollections[i]
-              let totalLength = vueInstance.processedData[vessel.mmsi].records.length
-              if (vessel.currentIndex >= totalLength) {
-                vessel.currentIndex = 0
-              }
 
-              if (vueInstance.info.pixiInfo.drawingCurrentTime >= vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].timeStamp) {
-                // don't move till the time is right
-                vessel.x = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[0]
-                vessel.y = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[1]
-                if (vessel.currentIndex + 1 < vueInstance.processedData[vessel.mmsi].records.length) {
-                  let x2 = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1].xy[0]
-                  let y2 = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1].xy[1]
-                  vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x);
+              if (vessel.next !== vessel) {
+                if (vueInstance.info.pixiInfo.drawingCurrentTime >= vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1].timeStamp) {
+                  vessel.alpha = vueInstance.info.pixiInfo.drawingAlpha
+                  vessel.currentIndex++
+                  vessel.x = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[0]
+                  vessel.y = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[1]
+                  if (vessel.currentIndex < vessel.totalLength - 1) {
+                    vessel.next = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1]
+                    let x2 = vessel.next.xy[0]
+                    let y2 = vessel.next.xy[1]
+                    vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x)
+                  } else {
+                    // last pts
+                    vessel.next = vessel
+                  }
                 }
-                vessel.currentIndex += 1
+              } else {
+                if (vueInstance.info.pixiInfo.drawingCurrentTime >= (vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].timeStamp + vueInstance.info.pixiInfo.drawingMaxLife)) {
+                  // sprite in particleContainer has no visibility setting
+                  // https://github.com/pixijs/pixi.js/issues/1910
+                  vessel.alpha = 0
+                  if (vueInstance.info.pixiInfo.drawingCurrentTime + vueInstance.info.pixiInfo.drawingTimeStep > vueInstance.info.pixiInfo.drawingEndTime) {
+                    vessel.alpha = vueInstance.info.pixiInfo.drawingAlpha
+                    vessel.currentIndex = 0
+                    vessel.x = vueInstance.processedData[vessel.mmsi].records[0].xy[0]
+                    vessel.y = vueInstance.processedData[vessel.mmsi].records[0].xy[1]
+                    if (vessel.totalLength > 1) {
+                      vessel.next = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1]
+                      let x2 = vessel.next.xy[0]
+                      let y2 = vessel.next.xy[1]
+                      vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x)
+                    } else {
+                      vessel.next = vessel
+                    }
+                  }
+                } else {
+                  vessel.alpha = vueInstance.info.pixiInfo.drawingAlpha
+                }
               }
             }
           } else {
@@ -829,6 +875,19 @@
           vueInstance.info.pixiInfo.drawingCurrentTime += vueInstance.info.pixiInfo.drawingTimeStep
           this.stats.end()
         })
+      },
+      loadData: function () {
+        this.info.loadingInfo.isLoading = true
+        this.info.loadingInfo.loadingText = 'Downloading Data...'
+        axios.get('./static/records.json')
+          .then(response => {
+            console.log(response.status)
+            if (response.data) {
+              this.rawData = response.data
+              this.info.loadingInfo.isLoading = false
+              this.drawData()
+            }
+          })
       },
       test: function (value) {
         alert(value)
@@ -851,8 +910,10 @@
       this.info.loadingInfo.isWelcomeDVisible = true
       // manually set these values for now
       this.info.pixiInfo.drawingStartTime = 1501977600 //new Date('2017-08-06').getTime()/1e3
+
       this.info.pixiInfo.drawingCurrentTime = 1501977600 //new Date('2017-08-06').getTime()/1e3
       this.info.pixiInfo.drawingEndTime = 1502150400 //new Date('2017-08-08').getTime()/1e3
+
       // have to move here as this.globe.orientation() seems to create a race condition and initScale will get a 0 if executed immediately after this.globe.orientation()
       this.info.initScale = (this.info.currentView.split(','))[2]
     },
