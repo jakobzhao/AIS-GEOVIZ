@@ -759,11 +759,11 @@
               vessel.y = vueInstance.processedData[vesselNameList[i]].records[0].xy[1]
               vessel.currentIndex = 0
               vessel.mmsi = vueInstance.processedData[vesselNameList[i]].mmsi
-              // create a random direction in radians
-              vessel.direction = Math.random() * Math.PI * 2
-
-              // this number will be used to modify the direction of the sprite over time
-              vessel.turningSpeed = Math.random() - 0.8
+              if (vueInstance.processedData[vessel.mmsi].records.length > 1) {
+                let x2 = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1].xy[0]
+                let y2 = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1].xy[1]
+                vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x);
+              }
 
               // create a random speed between 0 - 2, and these vesselCollections are slooww
               vessel.speed = (2 + Math.random() * 2) * 0.2
@@ -805,7 +805,12 @@
               let vessel = vesselCollections[i]
               if (vessel.currentIndex >= vueInstance.processedData[vessel.mmsi].records.length) {
                 vessel.currentIndex = 0
+              } else if (vessel.currentIndex +1 === vueInstance.processedData[vessel.mmsi].records.length) {
+                // ending pts
+
               }
+
+
               vessel.x = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[0]
               vessel.y = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[1]
               if (vessel.currentIndex + 1 < vueInstance.processedData[vessel.mmsi].records.length) {
