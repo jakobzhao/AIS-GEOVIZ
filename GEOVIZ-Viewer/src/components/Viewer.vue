@@ -609,7 +609,7 @@
                       continue geoStreamLoop
                     } else {
                       if (anchorPtsIndex.length) {
-                        if (loopCounter < longlat.length) {
+                        if (loopCounter < longlat.length -1) {
                           loopCounter += 1
                         } else {
                           // no matching result for current geoStream pts, pass
@@ -746,9 +746,9 @@
           for (let i = 0; i < totalSprites; i++) {
             if (vueInstance.processedData[vesselNameList[i]].records.length !== 0) {
               // create a new Sprite
-              let vessel = PIXI.Sprite.fromImage('static/bg.png')
+              let vessel = PIXI.Sprite.fromImage('static/vessel.png')
               vessel.alpha = 0.3
-              vessel.scale.set(100)
+              vessel.scale.set(1)
               vessel.tint = Math.random() * 0xE8D4CD
 
               // set the anchor point so the texture is centerd on the sprite
