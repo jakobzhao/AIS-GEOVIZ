@@ -754,7 +754,6 @@
               // set the anchor point so the texture is centerd on the sprite
               vessel.anchor.set(0.5)
 
-              // scatter them all
               vessel.x = vueInstance.processedData[vesselNameList[i]].records[0].xy[0]
               vessel.y = vueInstance.processedData[vesselNameList[i]].records[0].xy[1]
               vessel.currentIndex = 0
@@ -803,22 +802,22 @@
             // iterate through the sprites and update their position
             for (let i = 0; i < vesselCollections.length; i++) {
               let vessel = vesselCollections[i]
-              if (vessel.currentIndex >= vueInstance.processedData[vessel.mmsi].records.length) {
+              let totalLength = vueInstance.processedData[vessel.mmsi].records.length
+              if (vessel.currentIndex >= totalLength) {
                 vessel.currentIndex = 0
-              } else if (vessel.currentIndex +1 === vueInstance.processedData[vessel.mmsi].records.length) {
-                // ending pts
-
               }
 
-
-              vessel.x = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[0]
-              vessel.y = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[1]
-              if (vessel.currentIndex + 1 < vueInstance.processedData[vessel.mmsi].records.length) {
-                let x2 = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1].xy[0]
-                let y2 = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1].xy[1]
-                vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x);
+              if (vueInstance.info.pixiInfo.drawingCurrentTime >= vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].timeStamp) {
+                // don't move till the time is right
+                vessel.x = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[0]
+                vessel.y = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[1]
+                if (vessel.currentIndex + 1 < vueInstance.processedData[vessel.mmsi].records.length) {
+                  let x2 = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1].xy[0]
+                  let y2 = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1].xy[1]
+                  vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x);
+                }
+                vessel.currentIndex += 1
               }
-              vessel.currentIndex += 1
             }
           } else {
             sprites.visible = false
