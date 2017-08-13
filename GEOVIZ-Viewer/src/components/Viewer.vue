@@ -107,7 +107,8 @@
             isRedrawing: false,
             drawingStartTime: 0,
             drawingEndTime: 0,
-            drawingCurrentTime: 0
+            drawingCurrentTime: 0,
+            drawingTimeStep: 180
           },
           isMobile: false,
           dataProcessInfo: {
@@ -817,7 +818,11 @@
           } else {
             sprites.visible = false
           }
-          vueInstance.info.pixiInfo.drawingCurrentTime += 1800
+          // reset time when necessary
+          if (vueInstance.info.pixiInfo.drawingCurrentTime + vueInstance.info.pixiInfo.drawingTimeStep > vueInstance.info.pixiInfo.drawingEndTime) {
+            vueInstance.info.pixiInfo.drawingCurrentTime = vueInstance.info.pixiInfo.drawingStartTime
+          }
+          vueInstance.info.pixiInfo.drawingCurrentTime += vueInstance.info.pixiInfo.drawingTimeStep
           this.stats.end()
         })
       },
