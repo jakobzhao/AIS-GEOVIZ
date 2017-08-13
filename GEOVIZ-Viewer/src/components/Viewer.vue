@@ -135,7 +135,7 @@
           REDRAW_WAIT: 5,
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
           VIEW: micro.view(),
-          DEVMODE: 0
+          DEVMODE: 500
         },
         earthTopo: null,
         globe: null,
@@ -595,7 +595,7 @@
                 let loopCounter = 0
                 svgPtsLoop:
                   while (longlat.length) {
-                    if (currentPixelLocValue === (longlat[0].xy).join()) {
+                    if (currentPixelLocValue === (longlat[loopCounter].xy).join()) {
                       // svg-generated path will eliminate/overwrite pts with same longlat but different timestamp...
                       let newLonglatItem = {
                         isAnchor: true,
@@ -746,9 +746,9 @@
           for (let i = 0; i < totalSprites; i++) {
             if (vueInstance.processedData[vesselNameList[i]].records.length !== 0) {
               // create a new Sprite
-              let vessel = PIXI.Sprite.fromImage('static/vessel.png')
+              let vessel = PIXI.Sprite.fromImage('static/bg.png')
               vessel.alpha = 0.3
-              vessel.scale.set(1)
+              vessel.scale.set(100)
               vessel.tint = Math.random() * 0xE8D4CD
 
               // set the anchor point so the texture is centerd on the sprite
