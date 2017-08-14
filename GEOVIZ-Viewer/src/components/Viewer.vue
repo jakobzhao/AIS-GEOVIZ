@@ -41,7 +41,7 @@
                 <button @click="pixiWormBox()">Open W-box </button>
 
                 <button @click="processData()">Prep Data</button>-->
-        <button @click="loadData()">draw vessel </button>
+        <button @click="loadData()" v-show="!info.pixiInfo.hasDrawn">draw vessel </button>
 <!--        <button @click="info.loadingInfo.isLoading = true">show it</button>-->
       </div>
       <div>Long: {{info.currentView.split(',')[0]}}</div>
@@ -80,6 +80,7 @@
     <el-dialog title="Welcome to GEOVIZ - AIS Vessel Visualization" v-model="info.loadingInfo.isWelcomeDVisible" size="small" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
       <p>This is a project for Likun's master program</p>
       <p>Please use Chrome for best user experience</p>
+      <p>Click 'Draw Vessel' to start</p>
       <p slot="footer" class="dialog-footer">
         <el-button type="primary" @click="info.loadingInfo.isWelcomeDVisible = false">Confirm</el-button>
       </p>
@@ -115,6 +116,7 @@
           pixiInfo: {
             isVisible: true,
             isRedrawing: false,
+            hasDrawn: false,
             drawingStartTime: 0,
             drawingEndTime: 0,
             drawingCurrentTime: 0,
@@ -721,15 +723,17 @@
           this.goWebWorker()
         } else {
           // do while >> for >> forEach
+          let processedData = {}
           let i = 0
           while (i < vueInstance.rawData.length) {
-            let currentVessel = vueInstance.rawData[i]
-            vueInstance.processedData[currentVessel.mmsi] = {
+            let currentVessel = _.cloneDeep(vueInstance.rawData[i])
+            processedData[currentVessel.mmsi] = Object.seal({
               mmsi: currentVessel.mmsi,
               records: vueInstance.svgifyPath(currentVessel)
-            }
+            })
             i++
           }
+          this.processedData = Object.seal(processedData)
         }
 
         let endTime = window.performance.now()
@@ -740,6 +744,7 @@
       },
       drawData: function () {
         this.info.pixiInfo.isVisible = true
+        this.info.pixiInfo.hasDrawn = true
         this.processData()
         let vueInstance = this
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
@@ -883,7 +888,11 @@
           .then(response => {
             console.log(response.status)
             if (response.data) {
-              this.rawData = response.data
+              // https://github.com/vuejs/vue/issues/4384
+              // freeze data so no getter setter are added, significantly reduce memory usage, no need to do recursive freeze
+              // test it with this.rawData.__ob__
+              this.rawData = Object.freeze(response.data)
+            //  this.rawData = response.data)
               this.info.loadingInfo.isLoading = false
               this.drawData()
             }
