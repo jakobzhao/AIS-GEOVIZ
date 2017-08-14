@@ -35,6 +35,15 @@
           style="width: 200px"
           :min="60"
           :max="6000"></el-input-number>
+        <span>Extreme Mode</span>
+        <el-tooltip placement="bottom">
+          <div slot="content">Much faster but might create artifacts</div>
+          <el-switch
+            v-model="info.dataProcessInfo.isExtremeMode"
+            on-color="#ff4949"
+            off-color="#13ce66">
+          </el-switch>
+        </el-tooltip>
         <button @click="geoStreamTest()">Line Test</button>
         <button @click="updateVesselRecordTest()">UpdateData</button>
         <!--        <button @click="toggleDrawing()">Toggle drawing</button>
