@@ -128,6 +128,7 @@
           dataProcessInfo: {
             isRemoveInvalidData: false,
             isUsingWebWorker: false,
+            isExtremeMode: true,
             totalVessel: 0,
             invisibleVessel: 0,
             invisibleVesselList: [],
@@ -201,9 +202,9 @@
         this.info.isMobile = micro.isMobile()
         let isMobile = this.info.isMobile
         if (this.info.isMobile) {
-          this.earthTopo = this.prepTopoMesh(earthTopoMobile, isMobile)
+          this.earthTopo = Object.freeze(this.prepTopoMesh(earthTopoMobile, isMobile))
         } else {
-          this.earthTopo = this.prepTopoMesh(earthTopoPC, isMobile)
+          this.earthTopo = Object.freeze(this.prepTopoMesh(earthTopoPC, isMobile))
         }
       },
       prepTopoMesh: function (topojsonData, isMobile) {
@@ -540,80 +541,64 @@
         // get geoStreamed points with timestamps
         vessel.records = this.info.dataProcessInfo.isRemoveInvalidData ? this.removeInvalidData(vessel.records) : vessel.records
         let geoStreamedPoint = this.vesseLonglatToPixel(vessel)
-        let svgGeoPath = this.path.context(null)
-        let svgString = svgGeoPath(vessel.geoJSON)
+        if (!this.info.dataProcessInfo.isExtremeMode) {
+          let svgGeoPath = this.path.context(null)
+          let svgString = svgGeoPath(vessel.geoJSON)
 
-        if (svgString !== null) {
-          // parse svg for longlat
-          // negative values might appear when scale is large enough
-          let longlatRegex = /(-?\d+\.\d+,-?\d+\.\d+)/g
-          let longlatMatch
-          let longlatTemp = []
-          while (longlatMatch = longlatRegex.exec(svgString)) {
-            longlatTemp.push(longlatMatch[1])
-          }
-
-          // loop longlap for cleanup
-          let longlat = []
-          let i = 0
-          while (i < longlatTemp.length) {
-            let currentLonglat = longlatTemp[i]
-            let longlatString = currentLonglat.split(',')
-            // bottleneck here
-            // https://jsperf.com/number-vs-plus-vs-toint-vs-tofloat/14
-            let result = {
-              xy: [parseFloat(longlatString[0]), parseFloat(longlatString[1])],
-              timeStamp: null,
-              isAnchor: false
+          if (svgString !== null) {
+            // parse svg for longlat
+            // negative values might appear when scale is large enough
+            let longlatRegex = /(-?\d+\.\d+,-?\d+\.\d+)/g
+            let longlatMatch
+            let longlatTemp = []
+            while (longlatMatch = longlatRegex.exec(svgString)) {
+              longlatTemp.push(longlatMatch[1])
             }
-            if (result.xy[0] > 0 && result.xy[1] > 0) {
-              longlat.push(result)
+
+            // loop longlap for cleanup
+            let longlat = []
+            let i = 0
+            while (i < longlatTemp.length) {
+              let currentLonglat = longlatTemp[i]
+              let longlatString = currentLonglat.split(',')
+              // bottleneck here
+              // https://jsperf.com/number-vs-plus-vs-toint-vs-tofloat/14
+              let result = {
+                xy: [parseFloat(longlatString[0]), parseFloat(longlatString[1])],
+                timeStamp: null,
+                isAnchor: false
+              }
+              if (result.xy[0] > 0 && result.xy[1] > 0) {
+                longlat.push(result)
+              }
+              i++
             }
-            i++
-          }
 
-          // check if there is any curve or v/h line in generated svg string
-          // TODO: disable in production
-          let checkerRegex = /([a-zA-Z])/g
-          let checkerMatch
-          let checker = []
-          while (checkerMatch = checkerRegex.exec(svgString)) {
-            checker.push(checkerMatch[1])
-          }
-          let checkResult = checker.join().replace(/[lLmM,]/g, '')
-          if (checkResult) {
-            checkResult.length === 0 ? console.log() : console.log('something not right, ' + checkResult)
-          }
+            // check if there is any curve or v/h line in generated svg string
+            // TODO: disable in production
+            let checkerRegex = /([a-zA-Z])/g
+            let checkerMatch
+            let checker = []
+            while (checkerMatch = checkerRegex.exec(svgString)) {
+              checker.push(checkerMatch[1])
+            }
+            let checkResult = checker.join().replace(/[lLmM,]/g, '')
+            if (checkResult) {
+              checkResult.length === 0 ? console.log() : console.log('something not right, ' + checkResult)
+            }
 
-          if (longlat.length) {
-            // compare and merge svg-generated pts with geoStream generated pts
-            // TODO: need to refactor this nested loop
-            let anchorPtsIndex = []
-            let newLongLat = []
-            let j = 0
-            geoStreamLoop:
-              while (j < geoStreamedPoint.length) {
-                // for pts with same longlat but different timestamp
-                if (j !== 0) {
-                  if (geoStreamedPoint[j][0] === geoStreamedPoint[j - 1][0] &&
-                    geoStreamedPoint[j][1] === geoStreamedPoint[j - 1][1]) {
-                    let newLonglatItem = {
-                      isAnchor: true,
-                      timeStamp: geoStreamedPoint[j][2],
-                      xy: [geoStreamedPoint[j][0], geoStreamedPoint[j][1]]
-                    }
-                    newLongLat.push(newLonglatItem)
-                    anchorPtsIndex.push(newLongLat.length - 1)
-                    j++
-                    continue
-                  }
-                }
-                let currentPixelLocValue = [geoStreamedPoint[j][0], geoStreamedPoint[j][1]].join().toString()
-                let loopCounter = 0
-                svgPtsLoop:
-                  while (longlat.length) {
-                    if (currentPixelLocValue === (longlat[loopCounter].xy).join()) {
-                      // svg-generated path will eliminate/overwrite pts with same longlat but different timestamp...
+            if (longlat.length) {
+              // compare and merge svg-generated pts with geoStream generated pts
+              // TODO: need to refactor this nested loop
+              let anchorPtsIndex = []
+              let newLongLat = []
+              let j = 0
+              geoStreamLoop:
+                while (j < geoStreamedPoint.length) {
+                  // for pts with same longlat but different timestamp
+                  if (j !== 0) {
+                    if (geoStreamedPoint[j][0] === geoStreamedPoint[j - 1][0] &&
+                      geoStreamedPoint[j][1] === geoStreamedPoint[j - 1][1]) {
                       let newLonglatItem = {
                         isAnchor: true,
                         timeStamp: geoStreamedPoint[j][2],
@@ -621,63 +606,103 @@
                       }
                       newLongLat.push(newLonglatItem)
                       anchorPtsIndex.push(newLongLat.length - 1)
-                      longlat.shift()
                       j++
-                      continue geoStreamLoop
-                    } else {
-                      if (anchorPtsIndex.length) {
-                        if (loopCounter < longlat.length - 1) {
-                          loopCounter += 1
-                        } else {
-                          // no matching result for current geoStream pts, pass
-                          loopCounter = 0
-                          j++
-                          continue geoStreamLoop
-                        }
-                      } else {
-                        // filter out leading pts w/o timestamp
-                        longlat.shift()
-                      }
+                      continue
                     }
                   }
-                j++
+                  let currentPixelLocValue = [geoStreamedPoint[j][0], geoStreamedPoint[j][1]].join().toString()
+                  let loopCounter = 0
+                  svgPtsLoop:
+                    while (longlat.length) {
+                      if (currentPixelLocValue === (longlat[loopCounter].xy).join()) {
+                        // svg-generated path will eliminate/overwrite pts with same longlat but different timestamp...
+                        let newLonglatItem = {
+                          isAnchor: true,
+                          timeStamp: geoStreamedPoint[j][2],
+                          xy: [geoStreamedPoint[j][0], geoStreamedPoint[j][1]]
+                        }
+                        newLongLat.push(newLonglatItem)
+                        anchorPtsIndex.push(newLongLat.length - 1)
+                        longlat.shift()
+                        j++
+                        continue geoStreamLoop
+                      } else {
+                        if (anchorPtsIndex.length) {
+                          if (loopCounter < longlat.length - 1) {
+                            loopCounter += 1
+                          } else {
+                            // no matching result for current geoStream pts, pass
+                            loopCounter = 0
+                            j++
+                            continue geoStreamLoop
+                          }
+                        } else {
+                          // filter out leading pts w/o timestamp
+                          longlat.shift()
+                        }
+                      }
+                    }
+                  j++
+                }
+              // console.log is like cout, an expensive operation
+              if (this.params.DEVMODE > 50) {
+                console.log(vessel.mmsi)
+                console.info(geoStreamedPoint)
+                console.log(newLongLat)
+                console.log(anchorPtsIndex)
+                if (newLongLat.length < 1) {
+                  alert('not right')
+                }
               }
-            // console.log is like cout, an expensive operation
-            if (this.params.DEVMODE > 50) {
-              console.log(vessel.mmsi)
-              console.info(geoStreamedPoint)
-              console.log(newLongLat)
-              console.log(anchorPtsIndex)
-              if (newLongLat.length < 1) {
-                alert('not right')
+              let x = 0
+              while (x < newLongLat.length) {
+                if (newLongLat[x].isAnchor === false)
+                  alert(vessel.mmsi)
+                x++
               }
-            }
-            let x = 0
-            while (x < newLongLat.length) {
-              if (newLongLat[x].isAnchor === false)
-                alert(vessel.mmsi)
-              x++
-            }
 
-            this.info.dataProcessInfo.processProgress += 1 / this.info.dataProcessInfo.totalVessel
-            return newLongLat
+              this.info.dataProcessInfo.processProgress += 1 / this.info.dataProcessInfo.totalVessel
+              return newLongLat
+            } else {
+              // this vessel has no route pts under current projection + scale (negative x y value)
+              this.info.dataProcessInfo.invisibleVessel += 1
+              this.info.dataProcessInfo.invisibleVesselList.push(vessel.mmsi)
+              this.info.dataProcessInfo.processProgress += 1 / this.info.dataProcessInfo.totalVessel
+              return []
+            }
           } else {
-            // this vessel has no route pts under current projection + scale (negative x y value)
+            // this vessel has no route pts under current projection + scale
+            if (this.params.DEVMODE > 10) {
+              console.log(vessel.mmsi + ' is not visible')
+            }
             this.info.dataProcessInfo.invisibleVessel += 1
             this.info.dataProcessInfo.invisibleVesselList.push(vessel.mmsi)
             this.info.dataProcessInfo.processProgress += 1 / this.info.dataProcessInfo.totalVessel
             return []
           }
         } else {
-          // this vessel has no route pts under current projection + scale
-          if (this.params.DEVMODE > 10) {
-            console.log(vessel.mmsi + ' is not visible')
+          if (geoStreamedPoint.length) {
+            let longlat = []
+            let i = 0
+            while (i < geoStreamedPoint.length) {
+              let newLonglatItem = {
+                isAnchor: true,
+                timeStamp: geoStreamedPoint[i][2],
+                xy: [geoStreamedPoint[i][0], geoStreamedPoint[i][1]]
+              }
+              longlat.push(newLonglatItem)
+              i++
+            }
+            this.info.dataProcessInfo.processProgress += 1 / this.info.dataProcessInfo.totalVessel
+            return longlat
+          } else {
+            this.info.dataProcessInfo.invisibleVessel += 1
+            this.info.dataProcessInfo.invisibleVesselList.push(vessel.mmsi)
+            this.info.dataProcessInfo.processProgress += 1 / this.info.dataProcessInfo.totalVessel
+            return []
           }
-          this.info.dataProcessInfo.invisibleVessel += 1
-          this.info.dataProcessInfo.invisibleVesselList.push(vessel.mmsi)
-          this.info.dataProcessInfo.processProgress += 1 / this.info.dataProcessInfo.totalVessel
-          return []
         }
+
       },
       timeStampInterpretation: function (vessel) {
         //use geoPath + timestamp to add timestamp to pts
@@ -889,7 +914,7 @@
             console.log(response.status)
             if (response.data) {
               // https://github.com/vuejs/vue/issues/4384
-              // freeze data so no getter setter are added, significantly reduce memory usage, no need to do recursive freeze
+              // freeze data so no getter setter are added, significantly reduce memory usage (500MB), no need to do recursive freeze
               // test it with this.rawData.__ob__
               this.rawData = Object.freeze(response.data)
             //  this.rawData = response.data)
