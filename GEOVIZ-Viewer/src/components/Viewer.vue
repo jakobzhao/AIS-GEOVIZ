@@ -35,11 +35,11 @@
           style="width: 200px"
           :min="60"
           :max="6000"></el-input-number>
-        <span>Extreme Mode</span>
+        <span>Turbo Mode</span>
         <el-tooltip placement="bottom">
           <div slot="content">Much faster but might create artifacts</div>
           <el-switch
-            v-model="info.dataProcessInfo.isExtremeMode"
+            v-model="info.dataProcessInfo.isOnTurboMode"
             on-color="#ff4949"
             off-color="#13ce66">
           </el-switch>
@@ -137,7 +137,7 @@
           dataProcessInfo: {
             isRemoveInvalidData: false,
             isUsingWebWorker: false,
-            isExtremeMode: true,
+            isOnTurboMode: true,
             totalVessel: 0,
             invisibleVessel: 0,
             invisibleVesselList: [],
@@ -550,7 +550,7 @@
         // get geoStreamed points with timestamps
         vessel.records = this.info.dataProcessInfo.isRemoveInvalidData ? this.removeInvalidData(vessel.records) : vessel.records
         let geoStreamedPoint = this.vesseLonglatToPixel(vessel)
-        if (!this.info.dataProcessInfo.isExtremeMode) {
+        if (!this.info.dataProcessInfo.isOnTurboMode) {
           let svgGeoPath = this.path.context(null)
           let svgString = svgGeoPath(vessel.geoJSON)
 
