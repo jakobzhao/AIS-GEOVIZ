@@ -941,10 +941,11 @@
       d3.selectAll('.fill-screen').attr('width', this.params.VIEW.width).attr('height', this.params.VIEW.height)
       let fullScreenDOM = document.querySelectorAll('.full-screen')
       let vueInstance = this
-      fullScreenDOM.forEach(dom => {
-        dom.style.height = vueInstance.params.VIEW.height + 'px'
-        dom.style.width = vueInstance.params.VIEW.width + 'px'
-      })
+      for (let i = 1; i < fullScreenDOM.length; i++) {
+        fullScreenDOM[i].style.height = vueInstance.params.VIEW.height + 'px'
+        fullScreenDOM[i].style.width = vueInstance.params.VIEW.width + 'px'
+      }
+
       this.setEarthTopo()
       this.drawGlobe()
       this.onUserInput()
