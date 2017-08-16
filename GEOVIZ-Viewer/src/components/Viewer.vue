@@ -763,6 +763,8 @@
             let currentVessel = vueInstance.rawData[i]
             processedData[currentVessel.mmsi] = Object.seal({
               mmsi: currentVessel.mmsi,
+              // can't do setTimeOut here to free UI process as setTimeOut and even window.postMessage have lags, and 60K * .01ms = 6 secs...
+              //https://stackoverflow.com/questions/18826570/settimeout0-vs-window-postmessage-vs-messageport-postmessage
               records: vueInstance.svgifyPath(currentVessel)
             })
             i++
