@@ -548,7 +548,7 @@
       },
       svgifyPath: function (vessel) {
         // get geoStreamed points with timestamps
-        vessel.records = this.info.dataProcessInfo.isRemoveInvalidData ? this.removeInvalidData(vessel.records) : vessel.records
+/*        vessel.records = this.info.dataProcessInfo.isRemoveInvalidData ? this.removeInvalidData(vessel.records) : vessel.records*/
         let geoStreamedPoint = this.vesseLonglatToPixel(vessel)
         if (!this.info.dataProcessInfo.isOnTurboMode) {
           let svgGeoPath = this.path.context(null)
@@ -760,7 +760,7 @@
           let processedData = {}
           let i = 0
           while (i < vueInstance.rawData.length) {
-            let currentVessel = _.cloneDeep(vueInstance.rawData[i])
+            let currentVessel = vueInstance.rawData[i]
             processedData[currentVessel.mmsi] = Object.seal({
               mmsi: currentVessel.mmsi,
               records: vueInstance.svgifyPath(currentVessel)
