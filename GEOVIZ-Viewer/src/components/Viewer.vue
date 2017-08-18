@@ -112,7 +112,6 @@
   import * as topojson from 'topojson/node_modules/topojson-client/src/feature'
   import * as micro from '../Utils/micro'
   import * as globes from '../Utils/globes'
-  import earthTopoPC from '../data/earth-topo.json'
   import earthTopoSimple from '../data/world-110m.json'
 
   export default {
@@ -159,7 +158,7 @@
           REDRAW_WAIT: 5,
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
           VIEW: micro.view(),
-          DEVMODE: 0
+          DEVMODE: 100
         },
         earthTopo: null,
         globe: null,
@@ -225,7 +224,7 @@
         this.globe.orientation(this.info.currentView, this.params.VIEW, this)
       },
       onUserInput: function () {
-        let vueViewer = this
+        let vueInstance = this
         let coastline = d3.select('.coastline')
         let lakes = d3.select('.lakes')
         let displayDiv = document.getElementById('display')
@@ -235,7 +234,7 @@
             type: 'click',  // initially assumed to be a click operation
             startMouse: startMouse,
             startScale: startScale,
-            manipulator: vueViewer.globe.manipulator(startMouse, startScale)
+            manipulator: vueInstance.globe.manipulator(startMouse, startScale)
           }
         }
 
@@ -255,18 +254,13 @@
             if (op.type === 'click' || op.type === 'spurious') {
               let distanceMoved = micro.distance(currentMouse, op.startMouse)
               // console.log(distanceMoved + ' moved')
-              if (currentZoomRatio === op.startScale && distanceMoved < vueViewer.params.MIN_MOVE) {
+              if (currentZoomRatio === op.startScale && distanceMoved < vueInstance.params.MIN_MOVE) {
                 // to reduce annoyance, ignore op if mouse has barely moved and no zoom is occurring
                 op.type = distanceMoved > 0 ? 'click' : 'spurious'
                 return
               }
               op.type = 'drag'
               this.info.pixiInfo.isVisible = false
-
-              // replace path with low-res data
-              coastline.datum(this.earthTopo.coastLo)
-              lakes.datum(this.earthTopo.lakesLo)
-              d3.selectAll('path').attr('d', this.path)
             }
             if (currentZoomRatio !== op.startScale) {
               op.type = 'zoom' // whenever a scale change is detected, (stickily) switch to a zoom operation
@@ -275,9 +269,9 @@
             // when zooming, ignore whatever the mouse is doing--really cleans up behavior on touch devices
 
             if (this.params.DEVMODE > 100) console.log('for real ' + op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio)
-            op.manipulator.move(op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio * vueViewer.info.initScale)
+            op.manipulator.move(op.type.toString() === 'zoom' ? null : currentMouse, currentZoomRatio * vueInstance.info.initScale)
+            this.globe.drawMap(this)
             this.info.currentView = this.globe.orientation()
-            d3.selectAll('path').attr('d', this.path)
           })
           .on('end', () => {
             if (this.params.DEVMODE > 10) {
@@ -285,9 +279,6 @@
               console.log('op type= ' + op.type)
             }
             this.info.currentView = this.globe.orientation()
-            coastline.datum(this.earthTopo.coastHi)
-            lakes.datum(this.earthTopo.lakesHi)
-            d3.selectAll('path').attr('d', this.path)
 
             op.manipulator.end()
             // click rarely happens...
