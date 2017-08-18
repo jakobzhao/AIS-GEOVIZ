@@ -10,63 +10,78 @@
       <svg id="foreground" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
     </div>
 
-    <div id="geo-viz">
-      <el-dropdown style="padding-left: 200px"
-                   trigger="click"
-                   @command="handleChangeProject">
-        <el-button type="primary">
-          {{info.currentProjection | startCase}}
-          <i class="el-icon-caret-bottom el-icon--right"></i>
-        </el-button>
-        <el-dropdown-menu slot="dropdown">
-          <el-dropdown-item
-            v-for="projection in params.PROJECTION_LIST"
-            :key="projection"
-            :command="projection"
-            :disabled="info.currentProjection === projection">
-            {{projection | startCase}}
-          </el-dropdown-item>
-        </el-dropdown-menu>
-      </el-dropdown>
-      <span>Time step</span>
-      <el-input-number
-        v-model="info.pixiInfo.drawingTimeStep"
-        style="width: 200px"
-        :min="60"
-        :max="6000"></el-input-number>
-      <span>Turbo Mode</span>
-      <el-tooltip placement="bottom">
-        <div slot="content">Much faster but might create artifacts</div>
-        <el-switch
-          v-model="info.dataProcessInfo.isOnTurboMode"
-          on-color="#ff4949"
-          off-color="#13ce66">
-        </el-switch>
-      </el-tooltip>
+    <div id="geo-viz-icon">
+      <img
+        src="../assets/geoviz-logo.png"
+        :class="info.isShowingGEOVIZ ? 'small-logo' : 'big-logo'"
+        @click="info.isShowingGEOVIZ = !info.isShowingGEOVIZ">
+      <span
+          :class="info.isShowingGEOVIZ ? 'small-logo' : 'big-logo'"
+          @click="info.isShowingGEOVIZ = !info.isShowingGEOVIZ">
+        GEOVIZ</span>
 
-      <span>Debug Info</span>
-      <el-switch
-        v-model="info.isShowingDebug"
-        on-color="#107A92"
-        off-color="#6BA7BF">
-      </el-switch>
-      <button @click="geoStreamTest()">Line Test</button>
-      <button @click="updateVesselRecordTest()">UpdateData</button>
+      <div id="geo-viz" v-show="info.isShowingGEOVIZ">
+        <div class="geo-viz-content">
+          <el-dropdown style="padding-left: 200px"
+                       trigger="click"
+                       @command="handleChangeProject">
+            <el-button type="primary">
+              {{info.currentProjection | startCase}}
+              <i class="el-icon-caret-bottom el-icon--right"></i>
+            </el-button>
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item
+                v-for="projection in params.PROJECTION_LIST"
+                :key="projection"
+                :command="projection"
+                :disabled="info.currentProjection === projection">
+                {{projection | startCase}}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
+          <span>Time step</span>
+          <el-input-number
+            v-model="info.pixiInfo.drawingTimeStep"
+            style="width: 200px"
+            :min="60"
+            :max="6000"></el-input-number>
+          <span>Turbo Mode</span>
+          <el-tooltip placement="bottom">
+            <div slot="content">Much faster but might create artifacts</div>
+            <el-switch
+              v-model="info.dataProcessInfo.isOnTurboMode"
+              on-color="#ff4949"
+              off-color="#13ce66">
+            </el-switch>
+          </el-tooltip>
 
-      <!--        <button @click="toggleDrawing()">Toggle drawing</button>
-              <button @click="pixiWormBox()">Open W-box </button>
+          <span>Debug Info</span>
+          <el-switch
+            v-model="info.isShowingDebug"
+            on-color="#107A92"
+            off-color="#6BA7BF">
+          </el-switch>
+          <button @click="geoStreamTest()">Line Test</button>
+          <button @click="updateVesselRecordTest()">UpdateData</button>
 
-              <button @click="processData()">Prep Data</button>-->
-      <button @click="loadData()" v-show="!info.pixiInfo.hasDrawn">draw vessel </button>
-      <div>
-        <el-progress
-          :text-inside="true"
-          :stroke-width="18"
-          :percentage="currentTimeProgress"
-          style="width: 400px"></el-progress>
-        <div>currentTime: {{info.pixiInfo.drawingCurrentTime | showTime}}</div>
+          <!--        <button @click="toggleDrawing()">Toggle drawing</button>
+                  <button @click="pixiWormBox()">Open W-box </button>
+
+                  <button @click="processData()">Prep Data</button>-->
+          <button @click="loadData()" v-show="!info.pixiInfo.hasDrawn">draw vessel </button>
+          <div>
+            <el-progress
+              :text-inside="true"
+              :stroke-width="18"
+              :percentage="currentTimeProgress"
+              style="width: 400px"></el-progress>
+            <div>currentTime: {{info.pixiInfo.drawingCurrentTime | showTime}}</div>
+          </div>
+        </div>
       </div>
     </div>
+
+
 
     <div id="debug-info" v-if="info.isShowingDebug">
       <div>Long: {{info.currentView.split(',')[0]}}</div>
@@ -122,6 +137,7 @@
           currentView: '-170, 15, null',
           initScale: 0,
           isShowingDebug: false,
+          isShowingGEOVIZ: false,
           pixiInfo: {
             isVisible: true,
             isRedrawing: false,
@@ -965,25 +981,57 @@
   $font-stack: 'Ubuntu', Helvetica, Arial, sans-serif !important;
   @import url('https://fonts.googleapis.com/css?family=Ubuntu:500');
 
-  #geo-viz {
+  #geo-viz-icon {
     position: absolute;
+    display: block;
     color: white;
+    bottom: 0;
+    padding: 2em;
+    cursor: pointer !important;
+    user-select: none !important;
+    span {
+      font-weight: bold;
+      display: block;
+     }
+
+  }
+
+  .big-logo {
+    width: 110px;
+    height: auto;
+    font-size: 2em;
+  }
+
+  .small-logo {
+    width: 80px;
+    height: auto;
+    font-size: 1.5em;
+  }
+
+  #geo-viz {
+    background-color: rgba(62,140,132, 0.7);
+    color: white;
+    width: 500px;
+    border-radius: 5px;
     button > span, .el-dropdown-menu__item {
       font-family: $font-stack;
       font-size: 1.1em;
       color: white;
     }
+    .geo-viz-content {
+      padding: 1em;
+    }
   }
 
   #debug-info {
     position: absolute;
-    color: black;
+    color: white;
     right: 0;
     user-select: none;
     margin: 1em 1.5em;
     padding: 1em;
-    background-color: rgba(255, 255, 255, 0.75);
-    border-radius: 20px;
+    background-color: rgba(82, 159, 191, 0.5);
+    border-radius: 5px;
   }
 
   .el-dropdown-menu {
