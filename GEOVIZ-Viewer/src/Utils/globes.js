@@ -209,7 +209,7 @@ export function standardGlobe () {
 
       // halo
       context.lineWidth = 10
-      context.strokeStyle = 'rgba(255,255,255, 0.8)'
+      context.strokeStyle = 'rgba(255,255,255, 0.6)'
       context.beginPath()
       path.context(context)(globe)
       context.stroke()
