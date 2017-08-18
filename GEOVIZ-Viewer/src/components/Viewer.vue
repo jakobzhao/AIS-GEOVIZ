@@ -86,12 +86,13 @@
       </div>
     </div>
 
-    <el-dialog title="Welcome to GEOVIZ - AIS Vessel Visualization" v-model="info.loadingInfo.isWelcomeDVisible" size="small" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
-      <p>This is a project for Likun's master program</p>
-      <p>Please use Chrome for best user experience</p>
-      <p>Click 'Draw Vessel' to start</p>
+    <el-dialog title="Welcome to GEOVIZ - AIS Vessel Visualization" v-model="info.loadingInfo.isBrowserTestDVisible" size="tiny" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
+      <p v-if="info.loadingInfo.currentBrowser">It appears that you are using {{info.loadingInfo.currentBrowser}}</p>
+      <p v-if="info.loadingInfo.currentDevices">It appears that you are visiting this site from a {{info.loadingInfo.currentDevices}}</p>
+      <p>This site heavily utilizes webGL and has large data set for visualization.</p>
+      <p>For the best user experience, please use the latest Chrome on computer with a dedicated graphic card.</p>
       <p slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="info.loadingInfo.isWelcomeDVisible = false">Confirm</el-button>
+        <el-button type="primary" @click="info.loadingInfo.isBrowserTestDVisible = false">Confirm</el-button>
       </p>
     </el-dialog>
 
@@ -101,9 +102,9 @@
 <script>
   import _ from 'lodash'
   import ES6promise from 'es6-promise'
-
   ES6promise.polyfill()
   import axios from 'axios'
+  import bowser from 'bowser'
   import Promise from 'bluebird'
   import * as PIXI from 'pixi.js'
   import Stats from 'stats.js'
@@ -144,8 +145,10 @@
             lastProcessDuration: 0
           },
           loadingInfo: {
-            isWelcomeDVisible: false,
-            isLoading: false,
+            isBrowserTestDVisible: false,
+            currentBrowser: null,
+            currentDevices: null,
+            n: false,
             loadingText: 'Processing data...'
           }
         },
@@ -906,11 +909,23 @@
             }
           })
       },
-      test: function (value) {
-        alert(value)
+      browserTest: function () {
+        if (!bowser.chrome) {
+        this.info.loadingInfo.currentBrowser = bowser.name + ' ' + bowser.version
+          this.info.loadingInfo.isBrowserTestDVisible = true
+        }
+
+        if (bowser.mobile) {
+          this.info.loadingInfo.currentDevices = 'mobile'
+          this.info.loadingInfo.isBrowserTestDVisible = true
+        } else if (bowser.tablet) {
+          this.info.loadingInfo.currentDevices = 'tablet'
+          this.info.loadingInfo.isBrowserTestDVisible = true
+        }
       }
     },
     mounted: function () {
+      this.browserTest()
       // enlarge charting dom to full screen
       d3.selectAll('.fill-screen').attr('width', this.params.VIEW.width).attr('height', this.params.VIEW.height)
       let fullScreenDOM = document.querySelectorAll('.full-screen')
@@ -925,7 +940,6 @@
       this.onUserInput()
       this.info.currentView = this.globe.orientation()
       this.addStatsMeter()
-      this.info.loadingInfo.isWelcomeDVisible = true
       // manually set these values for now
       this.info.pixiInfo.drawingStartTime = 1501977600 //new Date('2017-08-06').getTime()/1e3
 
