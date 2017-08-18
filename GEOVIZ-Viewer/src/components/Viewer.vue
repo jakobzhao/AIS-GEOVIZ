@@ -2,7 +2,7 @@
   <div>
     <div id="display">
       <svg class="fill-screen" id="crosshair-background"></svg>
-      <svg id="map" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
+      <canvas id="map" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></canvas>
       <canvas id="animation" class="fill-screen"></canvas>
       <canvas id="overlay" class="fill-screen"></canvas>
       <canvas id="geoStreamTest" class="fill-screen"></canvas>
@@ -113,7 +113,7 @@
   import * as micro from '../Utils/micro'
   import * as globes from '../Utils/globes'
   import earthTopoPC from '../data/earth-topo.json'
-  import earthTopoMobile from '../data/earth-topo-mobile.json'
+  import earthTopoSimple from '../data/world-110m.json'
 
   export default {
     name: 'Viewer',
@@ -134,7 +134,6 @@
             drawingAlpha: 0.4,
             drawingMaxLife: 300
           },
-          isMobile: false,
           dataProcessInfo: {
             isRemoveInvalidData: false,
             isUsingWebWorker: false,
@@ -209,27 +208,8 @@
         this.info.pixiInfo.isVisible = !this.info.pixiInfo.isVisible
       },
       setEarthTopo: function () {
-        this.info.isMobile = micro.isMobile()
-        let isMobile = this.info.isMobile
-        if (this.info.isMobile) {
-          this.earthTopo = Object.freeze(this.prepTopoMesh(earthTopoMobile, isMobile))
-        } else {
-          this.earthTopo = Object.freeze(this.prepTopoMesh(earthTopoPC, isMobile))
-        }
-      },
-      prepTopoMesh: function (topojsonData, isMobile) {
-        let o = topojsonData.objects
-        let coastLo = topojson.feature(topojsonData, isMobile ? o.coastline_tiny : o.coastline_110m)
-        let coastHi = topojson.feature(topojsonData, isMobile ? o.coastline_110m : o.coastline_50m)
-        let lakesLo = topojson.feature(topojsonData, isMobile ? o.lakes_tiny : o.lakes_110m)
-        let lakesHi = topojson.feature(topojsonData, isMobile ? o.lakes_110m : o.lakes_50m)
-        return {
-          coastLo: coastLo,
-          coastHi: coastHi,
-          lakesLo: lakesLo,
-          lakesHi: lakesHi
-        }
-      },
+          this.earthTopo = Object.freeze(topojson.object(earthTopoSimple, earthTopoSimple.objects.countries))
+       },
       buildGlobe: function (projectionName) {
         if (this.params.PROJECTION_LIST.indexOf(projectionName) >= 0) {
           return globes.projectionList[projectionName](this.params.VIEW)
@@ -239,17 +219,10 @@
         if (this.params.DEVMODE > 100) console.log('drawing...')
         this.globe = this.buildGlobe(this.info.currentProjection)
         // First clear map and foreground svg contents.
-        micro.removeChildren(d3.select('#map').node())
         micro.removeChildren(d3.select('#foreground').node())
         // Create new map svg elements.
-        this.globe.defineMap(d3.select('#map'), d3.select('#foreground'))
-        this.globe.orientation(this.info.currentView, this.params.VIEW)
-
-        let coastline = d3.select('.coastline')
-        let lakes = d3.select('.lakes')
-        coastline.datum(this.earthTopo.coastHi)
-        lakes.datum(this.earthTopo.lakesHi)
-        d3.selectAll('path').attr('d', this.path)
+        this.globe.drawMap(this)
+        this.globe.orientation(this.info.currentView, this.params.VIEW, this)
       },
       onUserInput: function () {
         let vueViewer = this

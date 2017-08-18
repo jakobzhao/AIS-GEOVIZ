@@ -104,7 +104,7 @@ export function standardGlobe () {
      * @param [o] the orientation string
      * @param [view] the size of the view as {width:, height:}.
      */
-    orientation: function (o, view) {
+    orientation: function (o, view, vueInstance) {
       let projection = this.projection
       let rotate = projection.rotate()
       if (micro.isValue(o)) {
@@ -116,6 +116,7 @@ export function standardGlobe () {
         projection.rotate(_.isFinite(λ) && _.isFinite(φ) ? [-λ, -φ, rotate[2]] : this.newProjection(view).rotate())
         projection.scale(_.isFinite(scale) ? micro.clamp(scale, extent[0], extent[1]) : this.fit(view))
         projection.translate(this.center(view))
+        this.drawMap(vueInstance)
         return this
       }
       return [(-rotate[0]).toFixed(2), (-rotate[1]).toFixed(2), Math.round(projection.scale())].join(',')
@@ -173,31 +174,26 @@ export function standardGlobe () {
      * @param mapSvg the primary map SVG container.
      * @param foregroundSvg the foreground SVG container.
      */
-    defineMap: function (mapSvg, foregroundSvg) {
+    drawMap: function (vueInstance) {
+      let canvas = d3.select('#map')
       let path = d3.geoPath().projection(this.projection)
-      let defs = mapSvg.append('defs')
-      defs.append('path')
-        .attr('id', 'sphere')
-        .datum({type: 'Sphere'})
-        .attr('d', path)
-      mapSvg.append('use')
-        .attr('xlink:href', '#sphere')
-        .attr('class', 'background-sphere')
-      mapSvg.append('path')
-        .attr('class', 'graticule')
-        .datum(d3.geoGraticule())
-        .attr('d', path)
-      mapSvg.append('path')
-        .attr('class', 'hemisphere')
-        .datum(d3.geoGraticule().stepMinor([0, 90]).stepMajor([0, 90]))
-        .attr('d', path)
-      mapSvg.append('path')
-        .attr('class', 'coastline')
-      mapSvg.append('path')
-        .attr('class', 'lakes')
-      foregroundSvg.append('use')
-        .attr('xlink:href', '#sphere')
-        .attr('class', 'foreground-sphere')
+      let context = canvas.node().getContext('2d')
+      context.restore()
+      context.clearRect(0, 0, vueInstance.params.VIEW.width, vueInstance.params.VIEW.height)
+
+      let globe = {type: 'Sphere'}
+      context.fillStyle = '#d8ffff'
+      // clip is permanent, we save it here and restore it later to update the clip
+      context.save()
+      context.beginPath(), path.context(context)(globe), context.fill()
+      context.clip()
+
+      context.beginPath(), path.context(context)(globe), context.stroke()
+
+
+      context.fillStyle = '#d7c7ad'
+      context.beginPath(), path.context(context)(vueInstance.earthTopo), context.fill()
+      context.beginPath(), path.context(context)(vueInstance.earthTopo), context.stroke()
     }
   }
 }
@@ -250,39 +246,6 @@ export function orthographic () {
     newProjection: function () {
       return d3.geoOrthographic().rotate(currentPosition()).precision(0.1).clipAngle(90)
     },
-    defineMap: function (mapSvg, foregroundSvg) {
-      let path = d3.geoPath().projection(this.projection)
-      let defs = mapSvg.append('defs')
-      let gradientFill = defs.append('radialGradient')
-        .attr('id', 'orthographic-fill')
-        .attr('gradientUnits', 'objectBoundingBox')
-        .attr('cx', '50%').attr('cy', '49%').attr('r', '50%')
-      gradientFill.append('stop').attr('stop-color', '#303030').attr('offset', '69%')
-      gradientFill.append('stop').attr('stop-color', '#202020').attr('offset', '91%')
-      gradientFill.append('stop').attr('stop-color', '#000005').attr('offset', '96%')
-      defs.append('path')
-        .attr('id', 'sphere')
-        .datum({type: 'Sphere'})
-        .attr('d', path)
-      mapSvg.append('use')
-        .attr('xlink:href', '#sphere')
-        .attr('fill', 'url(#orthographic-fill)')
-      mapSvg.append('path')
-        .attr('class', 'graticule')
-        .datum(d3.geoGraticule())
-        .attr('d', path)
-      mapSvg.append('path')
-        .attr('class', 'hemisphere')
-        .datum(d3.geoGraticule().stepMinor([0, 90]).stepMajor([0, 90]))
-        .attr('d', path)
-      mapSvg.append('path')
-        .attr('class', 'coastline')
-      mapSvg.append('path')
-        .attr('class', 'lakes')
-      foregroundSvg.append('use')
-        .attr('xlink:href', '#sphere')
-        .attr('class', 'foreground-sphere')
-    },
     locate: function (coord) {
       return [-coord[0], -coord[1], this.projection.rotate()[2]]
     }
@@ -306,35 +269,6 @@ export function waterman () {
     newProjection: function () {
       return d3p.geoPolyhedralWaterman().rotate([20, 0]).precision(0.1)
     },
-    defineMap: function (mapSvg, foregroundSvg) {
-      let path = d3.geoPath().projection(this.projection)
-      let defs = mapSvg.append('defs')
-      defs.append('path')
-        .attr('id', 'sphere')
-        .datum({type: 'Sphere'})
-        .attr('d', path)
-      defs.append('clipPath')
-        .attr('id', 'clip')
-        .append('use')
-        .attr('xlink:href', '#sphere')
-      mapSvg.append('use')
-        .attr('xlink:href', '#sphere')
-        .attr('class', 'background-sphere')
-      mapSvg.append('path')
-        .attr('class', 'graticule')
-        .attr('clip-path', 'url(#clip)')
-        .datum(d3.geoGraticule())
-        .attr('d', path)
-      mapSvg.append('path')
-        .attr('class', 'coastline')
-        .attr('clip-path', 'url(#clip)')
-      mapSvg.append('path')
-        .attr('class', 'lakes')
-        .attr('clip-path', 'url(#clip)')
-      foregroundSvg.append('use')
-        .attr('xlink:href', '#sphere')
-        .attr('class', 'foreground-sphere')
-    }
   })
 }
 
@@ -349,10 +283,10 @@ export function winkel3 () {
 export const projectionList = {
   atlantis: atlantis,
   azimuthal_equidistant: azimuthalEquidistant,
-/*  conic_equidistant: conicEquidistant,*/
+  /*  conic_equidistant: conicEquidistant,*/
   equirectangular: equirectangular,
   orthographic: orthographic,
   stereographic: stereographic,
   waterman: waterman,
-  winkel_tripel : winkel3
+  winkel_tripel: winkel3
 }
