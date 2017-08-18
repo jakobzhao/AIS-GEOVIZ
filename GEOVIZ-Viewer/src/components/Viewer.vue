@@ -51,7 +51,7 @@
 
                 <button @click="processData()">Prep Data</button>-->
         <button @click="loadData()" v-show="!info.pixiInfo.hasDrawn">draw vessel </button>
-<!--        <button @click="info.loadingInfo.isLoading = true">show it</button>-->
+        <!--        <button @click="info.loadingInfo.isLoading = true">show it</button>-->
       </div>
       <div>Long: {{info.currentView.split(',')[0]}}</div>
       <div>Later: {{info.currentView.split(',')[1]}}</div>
@@ -101,6 +101,7 @@
 <script>
   import _ from 'lodash'
   import ES6promise from 'es6-promise'
+
   ES6promise.polyfill()
   import axios from 'axios'
   import Promise from 'bluebird'
@@ -193,7 +194,7 @@
         return d3.geoPath().projection(this.globe.projection).pointRadius(7)
       },
       currentTimeProgress: function () {
-        return ((this.info.pixiInfo.drawingCurrentTime - this.info.pixiInfo.drawingStartTime) * 100 /  (this.info.pixiInfo.drawingEndTime - this.info.pixiInfo.drawingStartTime)) | 0
+        return ((this.info.pixiInfo.drawingCurrentTime - this.info.pixiInfo.drawingStartTime) * 100 / (this.info.pixiInfo.drawingEndTime - this.info.pixiInfo.drawingStartTime)) | 0
       }
     },
     methods: {
@@ -548,8 +549,11 @@
       },
       svgifyPath: function (vessel) {
         // get geoStreamed points with timestamps
-/*        vessel.records = this.info.dataProcessInfo.isRemoveInvalidData ? this.removeInvalidData(vessel.records) : vessel.records*/
-        let geoStreamedPoint = this.vesseLonglatToPixel(vessel)
+        /*        vessel.records = this.info.dataProcessInfo.isRemoveInvalidData ? this.removeInvalidData(vessel.records) : vessel.records*/
+
+        let geoStreamedPoint = this.vesseLonglatToPixel(vessel).filter(record => {
+          return record[0] >= 0 && record[1] >= 0 && record[0] <= this.params.VIEW.width && record[1] <= this.params.VIEW.height
+        })
         if (!this.info.dataProcessInfo.isOnTurboMode) {
           let svgGeoPath = this.path.context(null)
           let svgString = svgGeoPath(vessel.geoJSON)
@@ -703,6 +707,10 @@
               i++
             }
             this.info.dataProcessInfo.processProgress += 1 / this.info.dataProcessInfo.totalVessel
+            if (this.params.DEVMODE > 50) {
+              console.log(longlat)
+              console.log(geoStreamedPoint)
+            }
             return longlat
           } else {
             this.info.dataProcessInfo.invisibleVessel += 1
@@ -804,7 +812,7 @@
           for (let i = 0; i < totalSprites; i++) {
             if (vueInstance.processedData[vesselNameList[i]].records.length !== 0) {
               // create a new Sprite
-              let vessel = PIXI.Sprite.fromImage('static/vessel.png')
+              let vessel = PIXI.Sprite.fromImage('static/vessel-2.png')
               vessel.alpha = vueInstance.info.pixiInfo.drawingAlpha
               vessel.scale.set(1)
               vessel.tint = Math.random() * 0xE8D4CD
@@ -928,7 +936,7 @@
               // freeze data so no getter setter are added, significantly reduce memory usage (500MB), no need to do recursive freeze
               // test it with this.rawData.__ob__
               this.rawData = Object.freeze(response.data)
-            //  this.rawData = response.data)
+              //  this.rawData = response.data)
               this.info.loadingInfo.isLoading = false
               this.drawData()
             }
