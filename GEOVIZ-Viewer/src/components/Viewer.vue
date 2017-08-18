@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div id="display">
+    <div id="display" v-loading.fullscreen.lock=info.loadingInfo.isLoading :element-loading-text=info.loadingInfo.loadingText>
       <svg class="fill-screen" id="crosshair-background"></svg>
       <canvas id="map" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></canvas>
       <canvas id="animation" class="fill-screen"></canvas>
@@ -10,80 +10,77 @@
       <svg id="foreground" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
     </div>
 
-    <div id="debug-info">
-      <div>
-        <el-dropdown style="padding-left: 200px"
-                     trigger="click"
-                     @command="handleChangeProject">
-          <el-button type="primary">
-            {{info.currentProjection | startCase}}
-            <i class="el-icon-caret-bottom el-icon--right"></i>
-          </el-button>
-          <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item
-              v-for="projection in params.PROJECTION_LIST"
-              :key="projection"
-              :command="projection"
-              :disabled="info.currentProjection === projection">
-              {{projection | startCase}}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </el-dropdown>
-        <span>Time step</span>
-        <el-input-number
-          v-model="info.pixiInfo.drawingTimeStep"
-          style="width: 200px"
-          :min="60"
-          :max="6000"></el-input-number>
-        <span>Turbo Mode</span>
-        <el-tooltip placement="bottom">
-          <div slot="content">Much faster but might create artifacts</div>
-          <el-switch
-            v-model="info.dataProcessInfo.isOnTurboMode"
-            on-color="#ff4949"
-            off-color="#13ce66">
-          </el-switch>
-        </el-tooltip>
-        <button @click="geoStreamTest()">Line Test</button>
-        <button @click="updateVesselRecordTest()">UpdateData</button>
-        <!--        <button @click="toggleDrawing()">Toggle drawing</button>
-                <button @click="pixiWormBox()">Open W-box </button>
+    <div id="geo-viz">
+      <el-dropdown style="padding-left: 200px"
+                   trigger="click"
+                   @command="handleChangeProject">
+        <el-button type="primary">
+          {{info.currentProjection | startCase}}
+          <i class="el-icon-caret-bottom el-icon--right"></i>
+        </el-button>
+        <el-dropdown-menu slot="dropdown">
+          <el-dropdown-item
+            v-for="projection in params.PROJECTION_LIST"
+            :key="projection"
+            :command="projection"
+            :disabled="info.currentProjection === projection">
+            {{projection | startCase}}
+          </el-dropdown-item>
+        </el-dropdown-menu>
+      </el-dropdown>
+      <span>Time step</span>
+      <el-input-number
+        v-model="info.pixiInfo.drawingTimeStep"
+        style="width: 200px"
+        :min="60"
+        :max="6000"></el-input-number>
+      <span>Turbo Mode</span>
+      <el-tooltip placement="bottom">
+        <div slot="content">Much faster but might create artifacts</div>
+        <el-switch
+          v-model="info.dataProcessInfo.isOnTurboMode"
+          on-color="#ff4949"
+          off-color="#13ce66">
+        </el-switch>
+      </el-tooltip>
 
-                <button @click="processData()">Prep Data</button>-->
-        <button @click="loadData()" v-show="!info.pixiInfo.hasDrawn">draw vessel </button>
-        <!--        <button @click="info.loadingInfo.isLoading = true">show it</button>-->
-      </div>
-      <div>Long: {{info.currentView.split(',')[0]}}</div>
-      <div>Later: {{info.currentView.split(',')[1]}}</div>
-      <div>Scale: {{info.currentView.split(',')[2]}}</div>
-      <div>Projection: {{info.currentProjection}}</div>
-      <div>info.pixiInfo.isVisible: {{info.pixiInfo.isVisible}}</div>
-      <div>info.pixiInfo.isRedrawing: {{info.pixiInfo.isRedrawing}}</div>
-      <div>all vessel: {{info.dataProcessInfo.totalVessel}}</div>
-      <div>visible vessel: {{info.dataProcessInfo.totalVessel - info.dataProcessInfo.invisibleVessel}}</div>
-      <div>processing progress : {{(info.dataProcessInfo.processProgress * 100 | 0)}}%</div>
-      <div>last progress time : {{info.dataProcessInfo.lastProcessDuration}}ms</div>
-      <div>isLoading : {{info.loadingInfo.isLoading}}</div>
-      <div>currentTIme : {{info.pixiInfo.drawingCurrentTime | showTime}}</div>
-      <div>currentTIme : {{info.pixiInfo.drawingCurrentTime}}</div>
+      <span>Debug Info</span>
+      <el-switch
+        v-model="info.isShowingDebug"
+        on-color="#107A92"
+        off-color="#6BA7BF">
+      </el-switch>
+      <button @click="geoStreamTest()">Line Test</button>
+      <button @click="updateVesselRecordTest()">UpdateData</button>
+
+      <!--        <button @click="toggleDrawing()">Toggle drawing</button>
+              <button @click="pixiWormBox()">Open W-box </button>
+
+              <button @click="processData()">Prep Data</button>-->
+      <button @click="loadData()" v-show="!info.pixiInfo.hasDrawn">draw vessel </button>
       <div>
         <el-progress
           :text-inside="true"
           :stroke-width="18"
           :percentage="currentTimeProgress"
           style="width: 400px"></el-progress>
+        <div>currentTime: {{info.pixiInfo.drawingCurrentTime | showTime}}</div>
       </div>
     </div>
 
-    <div class="fill-screen"
-         v-show="info.loadingInfo.isLoading">
-      <div id="loading-info" class="full-screen"></div>
-      <div class="full-screen" id="loading-info-container">
-        <div>
-          <h2>{{info.loadingInfo.loadingText}}</h2>
-          <h2>{{info.dataProcessInfo.processProgress}}</h2>
-        </div>
-      </div>
+    <div id="debug-info" v-if="info.isShowingDebug">
+      <div>Long: {{info.currentView.split(',')[0]}}</div>
+      <div>Lat: {{info.currentView.split(',')[1]}}</div>
+      <div>Scale: {{info.currentView.split(',')[2]}}</div>
+      <div>Projection: {{info.currentProjection}}</div>
+      <div>isVisible: {{info.pixiInfo.isVisible}}</div>
+      <div>isRedrawing: {{info.pixiInfo.isRedrawing}}</div>
+      <div>All Vessel Count: {{info.dataProcessInfo.totalVessel}}</div>
+      <div>Visible Vessel Count: {{info.dataProcessInfo.totalVessel - info.dataProcessInfo.invisibleVessel}}</div>
+      <div>Processing Progress: {{(info.dataProcessInfo.processProgress * 100 | 0)}}%</div>
+      <div>Last Process Time : {{info.dataProcessInfo.lastProcessDuration}}ms</div>
+      <div>isLoading: {{info.loadingInfo.isLoading}}</div>
+      <div>currentTime: {{info.pixiInfo.drawingCurrentTime}}</div>
     </div>
 
     <el-dialog title="Welcome to GEOVIZ - AIS Vessel Visualization" v-model="info.loadingInfo.isBrowserTestDVisible" size="tiny" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
@@ -102,6 +99,7 @@
 <script>
   import _ from 'lodash'
   import ES6promise from 'es6-promise'
+
   ES6promise.polyfill()
   import axios from 'axios'
   import bowser from 'bowser'
@@ -123,6 +121,7 @@
           currentProjection: 'orthographic',
           currentView: '-170, 15, null',
           initScale: 0,
+          isShowingDebug: false,
           pixiInfo: {
             isVisible: true,
             isRedrawing: false,
@@ -146,9 +145,9 @@
           },
           loadingInfo: {
             isBrowserTestDVisible: false,
+            isLoading: false,
             currentBrowser: null,
             currentDevices: null,
-            n: false,
             loadingText: 'Processing data...'
           }
         },
@@ -210,8 +209,8 @@
         this.info.pixiInfo.isVisible = !this.info.pixiInfo.isVisible
       },
       setEarthTopo: function () {
-          this.earthTopo = Object.freeze(topojson.object(earthTopoSimple, earthTopoSimple.objects.countries))
-       },
+        this.earthTopo = Object.freeze(topojson.object(earthTopoSimple, earthTopoSimple.objects.countries))
+      },
       buildGlobe: function (projectionName) {
         if (this.params.PROJECTION_LIST.indexOf(projectionName) >= 0) {
           return globes.projectionList[projectionName](this.params.VIEW)
@@ -911,7 +910,7 @@
       },
       browserTest: function () {
         if (!bowser.chrome) {
-        this.info.loadingInfo.currentBrowser = bowser.name + ' ' + bowser.version
+          this.info.loadingInfo.currentBrowser = bowser.name + ' ' + bowser.version
           this.info.loadingInfo.isBrowserTestDVisible = true
         }
 
@@ -966,15 +965,25 @@
   $font-stack: 'Ubuntu', Helvetica, Arial, sans-serif !important;
   @import url('https://fonts.googleapis.com/css?family=Ubuntu:500');
 
-  #debug-info {
+  #geo-viz {
     position: absolute;
     color: white;
+    button > span, .el-dropdown-menu__item {
+      font-family: $font-stack;
+      font-size: 1.1em;
+      color: white;
+    }
   }
 
-  #debug-info button > span, .el-dropdown-menu__item {
-    font-family: $font-stack;
-    font-size: 1.1em;
-    color: white;
+  #debug-info {
+    position: absolute;
+    color: black;
+    right: 0;
+    user-select: none;
+    margin: 1em 1.5em;
+    padding: 1em;
+    background-color: rgba(255, 255, 255, 0.75);
+    border-radius: 20px;
   }
 
   .el-dropdown-menu {
@@ -996,19 +1005,17 @@
     /*  will-change: transform;*/
   }
 
-  #loading-info {
-    background-color: white;
-    opacity: 0.6;
+  .el-loading-spinner {
+    top: 25% !important;
   }
 
-  #loading-info-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: black;
+  .el-loading-text {
+    font-size: 2em !important;
+    font-family: $font-stack;
   }
 
+  body > div.el-loading-mask.is-fullscreen > div > svg {
+    width: 100px !important;
+    height: 100px !important;
+  }
 </style>
