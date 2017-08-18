@@ -182,18 +182,43 @@ export function standardGlobe () {
       context.clearRect(0, 0, vueInstance.params.VIEW.width, vueInstance.params.VIEW.height)
 
       let globe = {type: 'Sphere'}
-      context.fillStyle = '#d8ffff'
+      let graticule = d3.geoGraticule10()
+
+      let oceanGradient = context.createLinearGradient(0, 0, vueInstance.params.VIEW.width, vueInstance.params.VIEW.height / 2)
+      oceanGradient.addColorStop(0, '#1A2980')
+      oceanGradient.addColorStop(1, '#26D0CE')
+      context.fillStyle = oceanGradient
+
+      // ocean
       // clip is permanent, we save it here and restore it later to update the clip
       context.save()
-      context.beginPath(), path.context(context)(globe), context.fill()
+      context.beginPath()
+      path.context(context)(globe)
+      context.fill()
       context.clip()
 
-      context.beginPath(), path.context(context)(globe), context.stroke()
-
-
+      // land
+      context.lineWidth = 0.2
       context.fillStyle = '#d7c7ad'
-      context.beginPath(), path.context(context)(vueInstance.earthTopo), context.fill()
-      context.beginPath(), path.context(context)(vueInstance.earthTopo), context.stroke()
+      context.beginPath()
+      path.context(context)(vueInstance.earthTopo)
+      context.fill()
+      context.beginPath()
+      path.context(context)(vueInstance.earthTopo)
+      context.stroke()
+
+      // halo
+      context.lineWidth = 10
+      context.strokeStyle = 'rgba(255,255,255, 0.8)'
+      context.beginPath()
+      path.context(context)(globe)
+      context.stroke()
+
+      context.strokeStyle = 'rgba(0,0,0, 0.8)'
+      context.lineWidth = 0.2
+      context.beginPath()
+      path.context(context)(graticule)
+      context.stroke()
     }
   }
 }
