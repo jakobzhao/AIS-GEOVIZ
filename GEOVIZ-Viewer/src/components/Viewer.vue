@@ -176,7 +176,7 @@
           REDRAW_WAIT: 5,
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
           VIEW: micro.view(),
-          DEVMODE: 100
+          DEVMODE: 0
         },
         earthTopo: null,
         globe: null,
@@ -987,12 +987,15 @@
     color: white;
     bottom: 0;
     padding: 2em;
-    cursor: pointer !important;
     user-select: none !important;
     span {
       font-weight: bold;
       display: block;
+      cursor: pointer !important;
      }
+    img {
+      cursor: pointer !important;
+    }
 
   }
 
