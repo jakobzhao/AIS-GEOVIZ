@@ -823,7 +823,7 @@
           vesselCollections = []
 
           // build mask
-          if (vueInstance.info.pixiInfo.isMasked) {
+          if (vueInstance.info.pixiInfo.isMasked && vueInstance.info.currentProjection === 'orthographic') {
             vueInstance.setCurrentCircle()
             myMask.clear()
             myMask.lineStyle(vueInstance.info.currentCircle[2] * 1.9, 0xffffff)
