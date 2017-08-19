@@ -16,8 +16,8 @@
         :class="info.isShowingGEOVIZ ? 'small-logo' : 'big-logo'"
         @click="info.isShowingGEOVIZ = !info.isShowingGEOVIZ">
       <span
-          :class="info.isShowingGEOVIZ ? 'small-logo' : 'big-logo'"
-          @click="info.isShowingGEOVIZ = !info.isShowingGEOVIZ">
+        :class="info.isShowingGEOVIZ ? 'small-logo' : 'big-logo'"
+        @click="info.isShowingGEOVIZ = !info.isShowingGEOVIZ">
         GEOVIZ</span>
 
       <div id="geo-viz" v-show="info.isShowingGEOVIZ">
@@ -63,7 +63,7 @@
           </el-switch>
           <button @click="geoStreamTest()">Line Test</button>
           <button @click="updateVesselRecordTest()">UpdateData</button>
-          <button @click="getCurrentCenter">current Center</button>
+          <button @click="setCurrentCircle()">current Circle</button>
 
           <!--        <button @click="toggleDrawing()">Toggle drawing</button>
                   <button @click="pixiWormBox()">Open W-box </button>
@@ -83,12 +83,12 @@
     </div>
 
 
-
     <div id="debug-info" v-if="info.isShowingDebug">
       <div>Long: {{info.currentView.split(',')[0]}}</div>
       <div>Lat: {{info.currentView.split(',')[1]}}</div>
       <div>Scale: {{info.currentView.split(',')[2]}}</div>
       <div>Projection: {{info.currentProjection}}</div>
+      <div>Circile: {{info.currentCircle}}</div>
       <div>isVisible: {{info.pixiInfo.isVisible}}</div>
       <div>isRedrawing: {{info.pixiInfo.isRedrawing}}</div>
       <div>All Vessel Count: {{info.dataProcessInfo.totalVessel}}</div>
@@ -136,6 +136,7 @@
         info: {
           currentProjection: 'orthographic',
           currentView: '-170, 15, null',
+          currentCircle: null,
           initScale: 0,
           isShowingDebug: true,
           isShowingGEOVIZ: false,
@@ -154,7 +155,7 @@
             isRemoveInvalidData: false,
             isUsingWebWorker: false,
             isOnTurboMode: true,
-            isOnScopedMode: false,
+            isOnScopedMode: true, // very heave calc, takes 3x times
             totalVessel: 0,
             invisibleVessel: 0,
             invisibleVesselList: [],
@@ -215,7 +216,7 @@
       },
       currentTimeProgress: function () {
         return ((this.info.pixiInfo.drawingCurrentTime - this.info.pixiInfo.drawingStartTime) * 100 / (this.info.pixiInfo.drawingEndTime - this.info.pixiInfo.drawingStartTime)) | 0
-      }
+      },
     },
     methods: {
       addStatsMeter: function () {
@@ -522,16 +523,8 @@
         let i = 0
         while (i < vessel.geoJSON.coordinates.length) {
           let currentLonglat = vessel.geoJSON.coordinates[i]
-          if (vueInstance.info.dataProcessInfo.isOnScopedMode) {
-            if (vueInstance.checkPtInRange(currentLonglat)) {
-              streamWrapper(currentLonglat[0], currentLonglat[1], vessel, i)
-              i++
-            }
-          } else {
-            streamWrapper(currentLonglat[0], currentLonglat[1], vessel, i)
-            i++
-          }
-
+          streamWrapper(currentLonglat[0], currentLonglat[1], vessel, i)
+          i++
         }
         return pixelArray
       },
@@ -547,6 +540,19 @@
         let geoStreamedPoint = this.vesseLonglatToPixel(vessel).filter(record => {
           return record[0] >= 0 && record[1] >= 0 && record[0] <= this.params.VIEW.width && record[1] <= this.params.VIEW.height
         })
+
+        // only works on sphere
+        // this is faster than calc-ing geoLength but still the overhead will slow down the process 3x to 5x
+        if (this.info.dataProcessInfo.isOnScopedMode && this.info.currentProjection === 'orthographic') {
+          this.setCurrentCircle()
+          // only cares when sphere is smaller than view
+          if (this.info.currentCircle[2] * 2 < this.params.VIEW.height) {
+             geoStreamedPoint = geoStreamedPoint.filter(pt => {
+               return this.checkPtInCircle(pt)
+             })
+          }
+        }
+
         if (!this.info.dataProcessInfo.isOnTurboMode) {
           let svgGeoPath = this.path.context(null)
           let svgString = svgGeoPath(vessel.geoJSON)
@@ -949,18 +955,23 @@
           this.info.loadingInfo.isBrowserTestDVisible = true
         }
       },
-      getCurrentCenter: function () {
-        alert(this.checkPtInRange([116.443, 39.922]))
+      setCurrentCircle: function () {
+        let circleBounds = this.path.bounds({type: 'Sphere'})
+        let circleCenter = (this.path.centroid({type: 'Sphere'}).map(pixel => pixel | 0))
+        let radius = (((circleBounds[1][0] | 0) - (circleBounds[0][0] | 0)) / 2) | 0
+        this.info.currentCircle = [...circleCenter, radius]
+      },
+      checkPtInCircle: function (streamedPoint) {
+        let deltaX = streamedPoint[0] - this.info.currentCircle[0]
+        let deltaY = streamedPoint[1] - this.info.currentCircle[1]
+        let distance = Math.hypot(deltaX, deltaY)
+        return distance < (this.info.currentCircle[2] * 0.95)
       },
       checkPtInRange: function (longlatArray) {
         let currentViewArray = this.info.currentView.split(',')
         let center = [currentViewArray[0], currentViewArray[1]]
-        let distance =  d3.geoDistance(center, longlatArray) * this.params.KMPERRAD
+        let distance = d3.geoDistance(center, longlatArray) * this.params.KMPERRAD
         return (distance > (this.params.EARTHRADIUS * 0.9))
-      },
-      getCurrentCenter: function () {
-        alert(this.path.bounds({type: 'Sphere'}))
-        alert(this.path.centroid({type: 'Sphere'}))
       }
     },
     mounted: function () {
@@ -1016,7 +1027,7 @@
       font-weight: bold;
       display: block;
       cursor: pointer !important;
-     }
+    }
     img {
       cursor: pointer !important;
     }
@@ -1036,7 +1047,7 @@
   }
 
   #geo-viz {
-    background-color: rgba(62,140,132, 0.7);
+    background-color: rgba(62, 140, 132, 0.7);
     color: white;
     width: 500px;
     border-radius: 5px;
