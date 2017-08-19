@@ -219,6 +219,8 @@ export function standardGlobe () {
       context.beginPath()
       path.context(context)(graticule)
       context.stroke()
+
+      path = null
     }
   }
 }
