@@ -61,6 +61,14 @@
             on-color="#107A92"
             off-color="#6BA7BF">
           </el-switch>
+
+          <span>Mask Animation</span>
+          <el-switch
+            v-model="info.pixiInfo.isMasked"
+            on-color="#107A92"
+            off-color="#6BA7BF">
+          </el-switch>
+
           <button @click="geoStreamTest()">Line Test</button>
           <button @click="updateVesselRecordTest()">UpdateData</button>
           <button @click="setCurrentCircle()">current Circle</button>
@@ -143,6 +151,7 @@
           pixiInfo: {
             isVisible: true,
             isRedrawing: false,
+            isMasked: true,
             hasDrawn: false,
             drawingStartTime: 0,
             drawingEndTime: 0,
@@ -155,7 +164,7 @@
             isRemoveInvalidData: false,
             isUsingWebWorker: false,
             isOnTurboMode: true,
-            isOnScopedMode: true, // very heave calc, takes 3x times
+            isOnScopedMode: false, // very heave calc, takes 3x times
             totalVessel: 0,
             invisibleVessel: 0,
             invisibleVesselList: [],
@@ -802,16 +811,31 @@
           uvs: true,
           alpha: true
         })
-        app.stage.addChild(sprites)
+
+        let container = new PIXI.Container()
+        container.filterArea = new PIXI.Rectangle(0, 0, this.params.VIEW.width, this.params.VIEW.height)
+        container.addChild(sprites);
+        app.stage.addChild(container)
         let vesselCollections
+        let myMask = new PIXI.Graphics()
 
         function buildSprites () {
           vesselCollections = []
 
+          // build mask
+          if (vueInstance.info.pixiInfo.isMasked) {
+            vueInstance.setCurrentCircle()
+            myMask.clear()
+            myMask.lineStyle(vueInstance.info.currentCircle[2] * 1.9, 0xffffff)
+            myMask.arc(vueInstance.info.currentCircle[0], vueInstance.info.currentCircle[1], 1, 0, Math.PI * 2)
+            app.stage.addChild(myMask)
+            container.mask = myMask
+          }
+
           for (let i = 0; i < totalSprites; i++) {
             if (vueInstance.processedData[vesselNameList[i]].records.length !== 0) {
               // create a new Sprite
-              let vessel = PIXI.Sprite.fromImage('static/vessel-2.png')
+              let vessel = PIXI.Sprite.fromImage('static/vessel.png')
               vessel.alpha = vueInstance.info.pixiInfo.drawingAlpha
               vessel.scale.set(1)
               vessel.tint = Math.random() * 0xE8D4CD
