@@ -63,6 +63,7 @@
           </el-switch>
           <button @click="geoStreamTest()">Line Test</button>
           <button @click="updateVesselRecordTest()">UpdateData</button>
+          <button @click="getCurrentCenter">current Center</button>
 
           <!--        <button @click="toggleDrawing()">Toggle drawing</button>
                   <button @click="pixiWormBox()">Open W-box </button>
@@ -136,7 +137,7 @@
           currentProjection: 'orthographic',
           currentView: '-170, 15, null',
           initScale: 0,
-          isShowingDebug: false,
+          isShowingDebug: true,
           isShowingGEOVIZ: false,
           pixiInfo: {
             isVisible: true,
@@ -153,6 +154,7 @@
             isRemoveInvalidData: false,
             isUsingWebWorker: false,
             isOnTurboMode: true,
+            isOnScopedMode: false,
             totalVessel: 0,
             invisibleVessel: 0,
             invisibleVesselList: [],
@@ -176,7 +178,9 @@
           REDRAW_WAIT: 5,
           // TODO:add event handler for window resizing or just use vw vh? https://github.com/vuejs/vue/issues/1915
           VIEW: micro.view(),
-          DEVMODE: 0
+          DEVMODE: 0,
+          KMPERRAD: 40075 / (Math.PI * 2),
+          EARTHRADIUS: 6371
         },
         earthTopo: null,
         globe: null,
@@ -518,8 +522,16 @@
         let i = 0
         while (i < vessel.geoJSON.coordinates.length) {
           let currentLonglat = vessel.geoJSON.coordinates[i]
-          streamWrapper(currentLonglat[0], currentLonglat[1], vessel, i)
-          i++
+          if (vueInstance.info.dataProcessInfo.isOnScopedMode) {
+            if (vueInstance.checkPtInRange(currentLonglat)) {
+              streamWrapper(currentLonglat[0], currentLonglat[1], vessel, i)
+              i++
+            }
+          } else {
+            streamWrapper(currentLonglat[0], currentLonglat[1], vessel, i)
+            i++
+          }
+
         }
         return pixelArray
       },
@@ -532,7 +544,6 @@
       svgifyPath: function (vessel) {
         // get geoStreamed points with timestamps
         /*        vessel.records = this.info.dataProcessInfo.isRemoveInvalidData ? this.removeInvalidData(vessel.records) : vessel.records*/
-
         let geoStreamedPoint = this.vesseLonglatToPixel(vessel).filter(record => {
           return record[0] >= 0 && record[1] >= 0 && record[0] <= this.params.VIEW.width && record[1] <= this.params.VIEW.height
         })
@@ -937,6 +948,19 @@
           this.info.loadingInfo.currentDevices = 'tablet'
           this.info.loadingInfo.isBrowserTestDVisible = true
         }
+      },
+      getCurrentCenter: function () {
+        alert(this.checkPtInRange([116.443, 39.922]))
+      },
+      checkPtInRange: function (longlatArray) {
+        let currentViewArray = this.info.currentView.split(',')
+        let center = [currentViewArray[0], currentViewArray[1]]
+        let distance =  d3.geoDistance(center, longlatArray) * this.params.KMPERRAD
+        return (distance > (this.params.EARTHRADIUS * 0.9))
+      },
+      getCurrentCenter: function () {
+        alert(this.path.bounds({type: 'Sphere'}))
+        alert(this.path.centroid({type: 'Sphere'}))
       }
     },
     mounted: function () {
