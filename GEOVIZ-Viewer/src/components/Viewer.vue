@@ -7,7 +7,7 @@
       <canvas id="overlay" class="fill-screen"></canvas>
       <canvas id="geoStreamTest" class="fill-screen"></canvas>
       <canvas id="geoPathTest" class="fill-screen"></canvas>
-      <svg id="foreground" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>
+      <canvas id="geoSimplifyTest" class="fill-screen"></canvas>
     </div>
 
     <div id="geo-viz-icon">
@@ -73,10 +73,7 @@
           <button @click="updateVesselRecordTest()">UpdateData</button>
           <button @click="setCurrentCircle()">current Circle</button>
 
-          <!--        <button @click="toggleDrawing()">Toggle drawing</button>
-                  <button @click="pixiWormBox()">Open W-box </button>
-
-                  <button @click="processData()">Prep Data</button>-->
+          <!--       <button @click="processData()">Prep Data</button>-->
           <button @click="loadData()" v-show="!info.pixiInfo.hasDrawn">draw vessel </button>
           <div>
             <el-progress
@@ -251,8 +248,7 @@
       drawGlobe: function (isUpdate) {
         if (this.params.DEVMODE > 100) console.log('drawing...')
         this.globe = this.buildGlobe(this.info.currentProjection)
-        // First clear map and foreground svg contents.
-        micro.removeChildren(d3.select('#foreground').node())
+
         // Create new map svg elements.
         this.globe.drawMap(this)
         this.globe.orientation(this.info.currentView, this.params.VIEW, this)
@@ -276,6 +272,10 @@
         let zoom = d3.zoom()
           .on('start', () => {
             op = op || newOp(d3.mouse(displayDiv), d3.zoomTransform(displayDiv).k)  // a new operation begins
+
+            // clean up canvas before rotate
+            document.getElementById('geoPathTest').getContext('2d').clearRect(0, 0, vueInstance.params.VIEW.width, vueInstance.params.VIEW.height)
+            document.getElementById('geoStreamTest').getContext('2d').clearRect(0, 0, vueInstance.params.VIEW.width, vueInstance.params.VIEW.height)
             if (this.params.DEVMODE > 10) console.log('zoom started')
           })
           .on('zoom', () => {
@@ -328,116 +328,6 @@
           })
         d3.select('#display').call(zoom)
       },
-      pixiWormBox: function () {
-        let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
-        document.getElementById('display').appendChild(app.view)
-        app.view.className += 'fill-screen'
-        let sprites = new PIXI.particles.ParticleContainer(10000, {
-          scale: true,
-          position: true,
-          rotation: true,
-          uvs: true,
-          alpha: true
-        })
-        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? 10000 : 100
-        app.stage.addChild(sprites)
-        let maggots
-
-        function buildSprites () {
-// create an array to store all the sprites
-          maggots = []
-          for (let i = 0; i < totalSprites; i++) {
-            // create a new Sprite
-            let dude = PIXI.Sprite.fromImage('static/maggot.png')
-            dude.alpha = 0.9
-            dude.tint = Math.random() * 0xE8D4CD
-            // set the anchor point so the texture is centerd on the sprite
-            dude.anchor.set(0.5)
-            // different maggots, different sizes
-            dude.scale.set(0.1 + Math.random() * 0.03)
-
-            // scatter them all
-            dude.x = Math.random() * app.renderer.width
-            dude.y = Math.random() * app.renderer.height
-
-            dude.tint = Math.random() * 0x808080
-
-            // create a random direction in radians
-            dude.direction = Math.random() * Math.PI * 2
-
-            // this number will be used to modify the direction of the sprite over time
-            dude.turningSpeed = Math.random() - 0.8
-
-            // create a random speed between 0 - 2, and these maggots are slooww
-            dude.speed = (2 + Math.random() * 2) * 0.2
-
-            dude.offset = Math.random() * 100
-
-            // finally we push the dude into the maggots array so it it can be easily accessed later
-            maggots.push(dude)
-            sprites.addChild(dude)
-          }
-        }
-
-        buildSprites()
-        // create a bounding box box for the little maggots
-        let dudeBoundsPadding = 100
-        let dudeBounds = new PIXI.Rectangle(
-          -dudeBoundsPadding,
-          -dudeBoundsPadding,
-          app.renderer.width + dudeBoundsPadding * 2,
-          app.renderer.height + dudeBoundsPadding * 2
-        )
-
-        app.ticker.add((delta) => {
-          this.stats.begin()
-          // increment the ticker
-          delta = Math.min(delta, 5)
-          // destroy old and create new
-          if (this.info.pixiInfo.isRedrawing) {
-            // destroy old and create new
-            while (sprites.children[0]) {
-              sprites.removeChild(sprites.children[0])
-            }
-            buildSprites()
-            this.info.pixiInfo.isRedrawing = false
-            this.info.pixiInfo.isVisible = true
-          }
-
-          // iterate through the sprites and update their position
-          if (this.info.pixiInfo.isVisible) {
-            sprites.visible = true
-            for (let i = 0; i < maggots.length; i++) {
-              let dude = maggots[i]
-              dude.scale.y = 0.95 + Math.sin(delta + dude.offset) * 0.05
-              dude.direction += dude.turningSpeed * 0.01
-              dude.x += Math.sin(dude.direction) * (dude.speed * dude.scale.y)
-              dude.y += Math.cos(dude.direction) * (dude.speed * dude.scale.y)
-              dude.rotation = -dude.direction + Math.PI
-
-              // wrap the maggots
-              if (dude.x < dudeBounds.x) {
-                dude.x += dudeBounds.width
-              }
-              else if (dude.x > dudeBounds.x + dudeBounds.width) {
-                dude.x -= dudeBounds.width
-              }
-
-              if (dude.y < dudeBounds.y) {
-                dude.y += dudeBounds.height
-              }
-              else if (dude.y > dudeBounds.y + dudeBounds.height) {
-                dude.y -= dudeBounds.height
-              }
-            }
-          } else {
-            sprites.visible = false
-          }
-          this.stats.end()
-        })
-        app.ticker.speed = 1
-        //requestAnimationFrame( this.pixiWormBox )
-      },
       geoStreamTest: function () {
         let vueInstance = this
         // drawing using geoStream
@@ -474,15 +364,12 @@
         drawGeoPath(geoPath, context2)
         let svgGeoPath = vueInstance.path.context(null)
         if (vueInstance.params.DEVMODE > 10) console.info(svgGeoPath(vueInstance.testPath))
-
-        // drawing svg
-        let svg = document.getElementById('foreground') //Get svg element
-        let newElement = document.createElementNS('http://www.w3.org/2000/svg', 'path') //Create a path in SVG's namespace
-        newElement.setAttribute('d', svgGeoPath(vueInstance.testPath)) //Set path's data
-        newElement.style.stroke = '#000' //Set stroke colour
-        newElement.style.fill = 'none'
-        newElement.style.strokeWidth = '2px' //Set stroke width
-        svg.appendChild(newElement)
+      },
+      geoSimplifyTest: function () {
+        let context = document.getElementById('geoSimplifyTest').getContext('2d')
+        context.clearRect(0, 0, vueInstance.params.VIEW.width, vueInstance.params.VIEW.height)
+        context.strokeStyle = 'rgba(245, 90, 92, 0.7)'
+        context.lineWidth = 7
       },
       updateVesselRecordTest: function () {
         let vueInstance = this
@@ -558,9 +445,9 @@
           this.setCurrentCircle()
           // only cares when sphere is smaller than view
           if (this.info.currentCircle[2] * 2 < this.params.VIEW.height) {
-             geoStreamedPoint = geoStreamedPoint.filter(pt => {
-               return this.checkPtInCircle(pt)
-             })
+            geoStreamedPoint = geoStreamedPoint.filter(pt => {
+              return this.checkPtInCircle(pt)
+            })
           }
         }
 
@@ -816,7 +703,7 @@
 
         let container = new PIXI.Container()
         container.filterArea = new PIXI.Rectangle(0, 0, this.params.VIEW.width, this.params.VIEW.height)
-        container.addChild(sprites);
+        container.addChild(sprites)
         app.stage.addChild(container)
         let vesselCollections
         let myMask = new PIXI.Graphics()
@@ -987,7 +874,6 @@
         let circleCenter = (this.path.centroid({type: 'Sphere'}).map(pixel => pixel | 0))
         let radius = (((circleBounds[1][0] | 0) - (circleBounds[0][0] | 0)) / 2) | 0
         this.info.currentCircle = [...circleCenter, radius]
-         alert(micro.getCrossTrackDistance(40,10, 30,10,35,20))
       },
       checkPtInCircle: function (streamedPoint) {
         let deltaX = streamedPoint[0] - this.info.currentCircle[0]
