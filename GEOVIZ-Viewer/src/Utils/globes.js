@@ -184,10 +184,25 @@ export function standardGlobe () {
       let globe = {type: 'Sphere'}
       let graticule = d3.geoGraticule10()
 
-      let oceanGradient = context.createLinearGradient(0, 0, vueInstance.params.VIEW.width, vueInstance.params.VIEW.height / 2)
-      oceanGradient.addColorStop(0, '#1A2980')
-      oceanGradient.addColorStop(1, '#26D0CE')
-      context.fillStyle = oceanGradient
+      let oceanGradient =
+        context.createRadialGradient(
+          Math.max(vueInstance.params.VIEW.width * 0.7, 960),
+          vueInstance.params.VIEW.height * 0.2,
+          300,
+          vueInstance.params.VIEW.width * 0.6,
+          vueInstance.params.VIEW.height * 0.4,
+          900)
+
+      oceanGradient.addColorStop(0, '#269FCE')
+      oceanGradient.addColorStop(0.2, '#1F518B')
+      oceanGradient.addColorStop(1, '#1A2980')
+
+      if (vueInstance.info.currentProjection === 'orthographic' && (vueInstance.info.currentView.split(',')[2] <= 600 || vueInstance.info.currentView.split(', ')[2]=== 'null')) {
+        context.fillStyle = oceanGradient
+      } else {
+        context.fillStyle =  '#2679AD'
+      }
+
 
       // ocean
       // clip is permanent, we save it here and restore it later to update the clip
