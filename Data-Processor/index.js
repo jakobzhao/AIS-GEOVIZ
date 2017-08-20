@@ -4,6 +4,7 @@ const _ = require('lodash')
 const credential = require('./credential')
 const Promise = require('bluebird')
 const fs = Promise.promisifyAll(require('fs'))
+const geoSimplify = require('./simplify-js.js')
 const options = {promiseLib: Promise, capSQL: true}
 const pgp = require('pg-promise')(options)
 const connection = {
@@ -16,6 +17,16 @@ const connection = {
 }
 const db = pgp(connection)
 
+function requireF(modulePath){ // force require
+  try {
+    return require(modulePath);
+  }
+  catch (e) {
+    console.log('requireF(): The file "' + modulePath + '".js could not be loaded.');
+    return false;
+  }
+}
+
 let singleDayQueryBuilder = function (startDate, endDate, digitArray) {
   let queryInfo = {
     startDate: startDate, // GMT0
@@ -25,11 +36,13 @@ let singleDayQueryBuilder = function (startDate, endDate, digitArray) {
   let query = pgp.as.format(
     'SELECT mmsi, report_time, longlat\n' +
     'FROM ais_record\n' +
-    'WHERE report_time >= ${startDate}\n' +
-    'AND report_time <= ${endDate}\n' +
-    'AND CAST(RIGHT(CAST(mmsi as VARCHAR), 1) as INT) IN (${queryMMSI_Digit^})\n' +
+ //   'WHERE mmsi = \'205180302\'' +
+    'WHERE mmsi = \'111219501\'' +
+ //   'WHERE report_time >= ${startDate}\n' +
+ //   'AND report_time <= ${endDate}\n' +
+//    'AND CAST(RIGHT(CAST(mmsi as VARCHAR), 1) as INT) IN (${queryMMSI_Digit^})\n' +
     'ORDER BY mmsi, report_time\n' +
-    'LIMIT 200' +
+ //   'LIMIT 200' +
     ';',
     queryInfo
   )
@@ -37,7 +50,7 @@ let singleDayQueryBuilder = function (startDate, endDate, digitArray) {
   return query
 }
 
-db.result(singleDayQueryBuilder('2017-08-06', '2017-08-07', [1, 2]))
+db.result(singleDayQueryBuilder('2017-08-06', '2017-08-08', [1, 2]))
   .then(result => {
     let records = groupByMMSI(result.rows)
     fs.writeFileAsync('records.json', JSON.stringify(records), 'utf-8')
@@ -55,11 +68,21 @@ function groupByMMSI (data) {
         coordinates: []
       }
     }
+
+    console.log(vessel.records.length)
+
+   // vessel.records = simplifyPath(vessel)
+    console.log(vessel.records.length)
     _.forEach(vessel.records, record => {
        vesselData.recordTime.push((new Date(record.report_time)).getTime() / 1e3)
       vesselData.geoJSON.coordinates.push([record.longlat.x, record.longlat.y])
     })
     return vesselData
+  }
+
+  function simplifyPath (vessel) {
+    return geoSimplify(vessel.records, 10,  true)
+    //
   }
 
   return _.chain(data)
