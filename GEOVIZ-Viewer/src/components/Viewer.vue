@@ -136,6 +136,8 @@
   import * as micro from '../Utils/micro'
   import * as globes from '../Utils/globes'
   import earthTopoSimple from '../data/world-110m.json'
+  import sampleRaw from '../data/sample-raw.json'
+  import sampleSlim from '../data/sample-slim.json'
 
   export default {
     name: 'Viewer',
@@ -826,7 +828,8 @@
           if (vueInstance.info.pixiInfo.isMasked && vueInstance.info.currentProjection === 'orthographic') {
             vueInstance.setCurrentCircle()
             myMask.clear()
-            myMask.lineStyle(vueInstance.info.currentCircle[2] * 1.9, 0xffffff)
+            // somehow regular filled circle doesn't do well as a mask, so we use arc + width
+            myMask.lineStyle(vueInstance.info.currentCircle[2] * 1.92, 0xffffff)
             myMask.arc(vueInstance.info.currentCircle[0], vueInstance.info.currentCircle[1], 1, 0, Math.PI * 2)
             app.stage.addChild(myMask)
             container.mask = myMask
@@ -984,6 +987,7 @@
         let circleCenter = (this.path.centroid({type: 'Sphere'}).map(pixel => pixel | 0))
         let radius = (((circleBounds[1][0] | 0) - (circleBounds[0][0] | 0)) / 2) | 0
         this.info.currentCircle = [...circleCenter, radius]
+         alert(micro.getCrossTrackDistance(40,10, 30,10,35,20))
       },
       checkPtInCircle: function (streamedPoint) {
         let deltaX = streamedPoint[0] - this.info.currentCircle[0]
