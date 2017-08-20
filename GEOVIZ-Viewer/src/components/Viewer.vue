@@ -12,14 +12,9 @@
 
     <div id="geo-viz-icon">
       <img
-        src="../assets/geoviz-logo.png"
+        src="../assets/geoviz-logo-w-text.png"
         :class="info.isShowingGEOVIZ ? 'small-logo' : 'big-logo'"
         @click="info.isShowingGEOVIZ = !info.isShowingGEOVIZ">
-      <span
-        :class="info.isShowingGEOVIZ ? 'small-logo' : 'big-logo'"
-        @click="info.isShowingGEOVIZ = !info.isShowingGEOVIZ">
-        GEOVIZ</span>
-
       <div id="geo-viz" v-show="info.isShowingGEOVIZ">
         <div class="geo-viz-content">
           <el-dropdown style="padding-left: 200px"
@@ -100,7 +95,7 @@
       <div>isRedrawing: {{info.pixiInfo.isRedrawing}}</div>
       <div>All Vessel Count: {{info.dataProcessInfo.totalVessel}}</div>
       <div>Visible Vessel Count: {{info.dataProcessInfo.totalVessel - info.dataProcessInfo.invisibleVessel}}</div>
-      <div>Processing Progress: {{(info.dataProcessInfo.processProgress * 100 | 0)}}%</div>
+      <div>Processing Progress: {{(Math.floor(info.dataProcessInfo.processProgress * 100 ))}}%</div>
       <div>Last Process Time : {{info.dataProcessInfo.lastProcessDuration}}ms</div>
       <div>isLoading: {{info.loadingInfo.isLoading}}</div>
       <div>currentTime: {{info.pixiInfo.drawingCurrentTime}}</div>
@@ -227,14 +222,14 @@
         return d3.geoPath().projection(this.globe.projection).pointRadius(7)
       },
       currentTimeProgress: function () {
-        return ((this.info.pixiInfo.drawingCurrentTime - this.info.pixiInfo.drawingStartTime) * 100 / (this.info.pixiInfo.drawingEndTime - this.info.pixiInfo.drawingStartTime)) | 0
+        return (((this.info.pixiInfo.drawingCurrentTime - this.info.pixiInfo.drawingStartTime) * 100 / (this.info.pixiInfo.drawingEndTime - this.info.pixiInfo.drawingStartTime))) | 0
       },
     },
     methods: {
       addStatsMeter: function () {
         this.stats = new Stats()
         this.stats.domElement.style.position = 'absolute'
-        this.stats.domElement.style.top = '0px'
+        this.stats.domElement.style.top = '60px'
         this.stats.domElement.id = 'statsMeter'
         document.body.appendChild(this.stats.domElement)
       },
@@ -259,8 +254,6 @@
       },
       onUserInput: function () {
         let vueInstance = this
-        let coastline = d3.select('.coastline')
-        let lakes = d3.select('.lakes')
         let displayDiv = document.getElementById('display')
 
         function newOp (startMouse, startScale) {
@@ -385,7 +378,6 @@
         let context = document.getElementById('geoSimplifyTest').getContext('2d')
         let geoPath = this.path.context(context)
         let geoStreamPts = this.vesseLonglatToPixel(this.sampleSlim)
-        console.log(geoStreamPts)
         context.clearRect(0, 0, this.params.VIEW.width, this.params.VIEW.height)
         context.strokeStyle = 'rgba(245, 90, 92, 0.7)'
         context.lineWidth = 2
@@ -402,7 +394,7 @@
         // slim dots
         context.fillStyle = 'rgba(255, 215, 0, 1)'
         geoStreamPts.forEach(pts => {
-          context.fillRect(pts[0],pts[1],8,8)
+          context.fillRect(pts[0], pts[1], 8, 8)
         })
 
       },
@@ -713,7 +705,7 @@
         }
 
         let endTime = window.performance.now()
-        let processDuration = (endTime - startTime) | 0
+        let processDuration = Math.floor(endTime - startTime)
         this.info.dataProcessInfo.lastProcessDuration = processDuration
         this.$message(`All data of ${this.info.dataProcessInfo.totalVessel} vessels processed in  ${processDuration} ms`)
         this.info.loadingInfo.isLoading = false
@@ -726,7 +718,7 @@
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
-        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? vueInstance.info.dataProcessInfo.totalVessel : 100
+        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? vueInstance.info.dataProcessInfo.totalVessel : Math.min(vueInstance.info.dataProcessInfo.totalVessel, 100)
         let vesselNameList = Object.keys(vueInstance.processedData)
         let sprites = new PIXI.particles.ParticleContainer(vueInstance.info.dataProcessInfo.totalVessel, {
           scale: true,
@@ -736,12 +728,12 @@
           alpha: true
         })
 
+
         let container = new PIXI.Container()
         container.filterArea = new PIXI.Rectangle(0, 0, this.params.VIEW.width, this.params.VIEW.height)
-        container.addChild(sprites)
-        app.stage.addChild(container)
         let vesselCollections
         let myMask = new PIXI.Graphics()
+
 
         function buildSprites () {
           vesselCollections = []
@@ -757,8 +749,23 @@
             container.mask = myMask
           }
 
+
           for (let i = 0; i < totalSprites; i++) {
-            if (vueInstance.processedData[vesselNameList[i]].records.length !== 0) {
+            let currentVessel = vueInstance.processedData[vesselNameList[i]]
+
+            if (currentVessel.records.length !== 0) {
+
+/*
+              // build line
+              for (let j = 0; j < currentVessel.records.length - 1; j++) {
+                if (j === 0) {
+                  line.moveTo(currentVessel.records[j].xy[0], currentVessel.records[j].xy[1])
+                } else {
+                  line.lineTo(currentVessel.records[j + 1].xy[0], currentVessel.records[j + 1].xy[1])
+                }
+              }
+*/
+
               // create a new Sprite
               let vessel = PIXI.Sprite.fromImage('static/vessel.png')
               vessel.alpha = vueInstance.info.pixiInfo.drawingAlpha
@@ -769,15 +776,15 @@
               // set the anchor point so the texture is centerd on the sprite
               vessel.anchor.set(0.5)
 
-              vessel.x = vueInstance.processedData[vesselNameList[i]].records[0].xy[0]
-              vessel.y = vueInstance.processedData[vesselNameList[i]].records[0].xy[1]
-              vessel.mmsi = vueInstance.processedData[vesselNameList[i]].mmsi
+              vessel.x = Math.round(currentVessel.records[0].xy[0])
+              vessel.y = Math.round(currentVessel.records[0].xy[1])
+              vessel.mmsi = currentVessel.mmsi
               vessel.currentIndex = 0
-              vessel.totalLength = vueInstance.processedData[vessel.mmsi].records.length
+              vessel.totalLength = currentVessel.records.length
               if (vessel.totalLength > 1) {
-                vessel.next = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1]
-                let x2 = vessel.next.xy[0]
-                let y2 = vessel.next.xy[1]
+                vessel.next = currentVessel.records[vessel.currentIndex + 1]
+                let x2 = Math.round(vessel.next.xy[0])
+                let y2 = Math.round(vessel.next.xy[1])
                 vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x)
               } else {
                 vessel.next = vessel
@@ -793,6 +800,8 @@
               sprites.addChild(vessel)
             }
           }
+          container.addChild(sprites)
+          app.stage.addChild(container)
         }
 
         buildSprites()
@@ -825,12 +834,12 @@
                 if (vueInstance.info.pixiInfo.drawingCurrentTime >= vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1].timeStamp) {
                   vessel.alpha = vueInstance.info.pixiInfo.drawingAlpha
                   vessel.currentIndex++
-                  vessel.x = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[0]
-                  vessel.y = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[1]
+                  vessel.x = Math.round(vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[0])
+                  vessel.y = Math.round(vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[1])
                   if (vessel.currentIndex < vessel.totalLength - 1) {
                     vessel.next = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1]
-                    let x2 = vessel.next.xy[0]
-                    let y2 = vessel.next.xy[1]
+                    let x2 = Math.round(vessel.next.xy[0])
+                    let y2 = Math.round(vessel.next.xy[1])
                     vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x)
                   } else {
                     // last pts
@@ -845,12 +854,12 @@
                   if (vueInstance.info.pixiInfo.drawingCurrentTime + vueInstance.info.pixiInfo.drawingTimeStep > vueInstance.info.pixiInfo.drawingEndTime) {
                     vessel.alpha = vueInstance.info.pixiInfo.drawingAlpha
                     vessel.currentIndex = 0
-                    vessel.x = vueInstance.processedData[vessel.mmsi].records[0].xy[0]
-                    vessel.y = vueInstance.processedData[vessel.mmsi].records[0].xy[1]
+                    vessel.x = Math.round(vueInstance.processedData[vessel.mmsi].records[0].xy[0])
+                    vessel.y = Math.round(vueInstance.processedData[vessel.mmsi].records[0].xy[1])
                     if (vessel.totalLength > 1) {
                       vessel.next = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1]
-                      let x2 = vessel.next.xy[0]
-                      let y2 = vessel.next.xy[1]
+                      let x2 = Math.round(vessel.next.xy[0])
+                      let y2 = Math.round(vessel.next.xy[1])
                       vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x)
                     } else {
                       vessel.next = vessel
@@ -905,8 +914,8 @@
       },
       setCurrentCircle: function () {
         let circleBounds = this.path.bounds({type: 'Sphere'})
-        let circleCenter = (this.path.centroid({type: 'Sphere'}).map(pixel => pixel | 0))
-        let radius = (((circleBounds[1][0] | 0) - (circleBounds[0][0] | 0)) / 2) | 0
+        let circleCenter = (this.path.centroid({type: 'Sphere'}).map(pixel => Math.round(pixel)))
+        let radius = Math.round((((circleBounds[1][0]) - (circleBounds[0][0])) / 2))
         this.info.currentCircle = [...circleCenter, radius]
       },
       checkPtInCircle: function (streamedPoint) {
@@ -971,11 +980,6 @@
     bottom: 0;
     padding: 2em;
     user-select: none !important;
-    span {
-      font-weight: bold;
-      display: block;
-      cursor: pointer !important;
-    }
     img {
       cursor: pointer !important;
     }
@@ -983,13 +987,13 @@
   }
 
   .big-logo {
-    width: 110px;
+    width: 400px;
     height: auto;
     font-size: 2em;
   }
 
   .small-logo {
-    width: 80px;
+    width: 350px;
     height: auto;
     font-size: 1.5em;
   }
@@ -1034,7 +1038,7 @@
 
   .fill-screen {
     position: absolute;
-    top: 0;
+    top: 60px;
     left: 0;
     /*  will-change: transform;*/
   }
