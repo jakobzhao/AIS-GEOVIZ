@@ -15,7 +15,7 @@
         src="../assets/geoviz-logo-w-text.png"
         :class="info.isShowingGEOVIZ ? 'small-logo' : 'big-logo'"
         @click="info.isShowingGEOVIZ = !info.isShowingGEOVIZ">
-      <div id="geo-viz" v-show="info.isShowingGEOVIZ">
+      <div id="geo-viz" v-show="info.isShowingGEOVIZ" class="panel">
         <div class="geo-viz-content">
           <el-dropdown style="padding-left: 200px"
                        trigger="click"
@@ -50,12 +50,6 @@
             </el-switch>
           </el-tooltip>
 
-          <span>Debug Info</span>
-          <el-switch
-            v-model="info.isShowingDebug"
-            on-color="#107A92"
-            off-color="#6BA7BF">
-          </el-switch>
 
           <span>Mask Animation</span>
           <el-switch
@@ -84,21 +78,31 @@
     </div>
 
 
-    <div id="debug-info" v-if="info.isShowingDebug">
-      <div>Long: {{info.currentView.split(',')[0]}}</div>
-      <div>Lat: {{info.currentView.split(',')[1]}}</div>
-      <div>Scale: {{info.currentView.split(',')[2]}}</div>
-      <div>Projection: {{info.currentProjection}}</div>
-      <div>DeBounce Delay: {{params.DEBOUNCE_WAIT}}ms</div>
-      <div>Circile: {{info.currentCircle}}</div>
-      <div>isVisible: {{info.pixiInfo.isVisible}}</div>
-      <div>isRedrawing: {{info.pixiInfo.isRedrawing}}</div>
-      <div>All Vessel Count: {{info.dataProcessInfo.totalVessel}}</div>
-      <div>Visible Vessel Count: {{info.dataProcessInfo.totalVessel - info.dataProcessInfo.invisibleVessel}}</div>
-      <div>Processing Progress: {{(Math.floor(info.dataProcessInfo.processProgress * 100 ))}}%</div>
-      <div>Last Process Time : {{info.dataProcessInfo.lastProcessDuration}}ms</div>
-      <div>isLoading: {{info.loadingInfo.isLoading}}</div>
-      <div>currentTime: {{info.pixiInfo.drawingCurrentTime}}</div>
+    <div id="debug-info">
+      <div class="sci-fi-heading">
+        <span style="font-size: 1.2em">Debug Info</span>
+        <el-switch
+          v-model="info.isShowingDebug"
+          on-color="#FA7C7A"
+          off-color="#45B9BA">
+        </el-switch>
+      </div>
+      <div id="debug-info-content" v-if="info.isShowingDebug" class=" sci-fi">
+        <div>Long: {{info.currentView.split(',')[0]}}</div>
+        <div>Lat: {{info.currentView.split(',')[1]}}</div>
+        <div>Scale: {{info.currentView.split(',')[2]}}</div>
+        <div>Projection: {{info.currentProjection}}</div>
+        <div>DeBounce Delay: {{params.DEBOUNCE_WAIT}}ms</div>
+        <div>Circile: {{info.currentCircle}}</div>
+        <div>isVisible: {{info.pixiInfo.isVisible}}</div>
+        <div>isRedrawing: {{info.pixiInfo.isRedrawing}}</div>
+        <div>All Vessel Count: {{info.dataProcessInfo.totalVessel}}</div>
+        <div>Visible Vessel Count: {{info.dataProcessInfo.totalVessel - info.dataProcessInfo.invisibleVessel}}</div>
+        <div>Processing Progress: {{(Math.floor(info.dataProcessInfo.processProgress * 100))}}%</div>
+        <div>Last Process Time : {{info.dataProcessInfo.lastProcessDuration}}ms</div>
+        <div>isLoading: {{info.loadingInfo.isLoading}}</div>
+        <div>currentTime: {{info.pixiInfo.drawingCurrentTime}}</div>
+      </div>
     </div>
 
     <el-dialog title="Welcome to GEOVIZ - AIS Vessel Visualization" v-model="info.loadingInfo.isBrowserTestDVisible" size="tiny" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
@@ -728,12 +732,10 @@
           alpha: true
         })
 
-
         let container = new PIXI.Container()
         container.filterArea = new PIXI.Rectangle(0, 0, this.params.VIEW.width, this.params.VIEW.height)
         let vesselCollections
         let myMask = new PIXI.Graphics()
-
 
         function buildSprites () {
           vesselCollections = []
@@ -749,22 +751,21 @@
             container.mask = myMask
           }
 
-
           for (let i = 0; i < totalSprites; i++) {
             let currentVessel = vueInstance.processedData[vesselNameList[i]]
 
             if (currentVessel.records.length !== 0) {
 
-/*
-              // build line
-              for (let j = 0; j < currentVessel.records.length - 1; j++) {
-                if (j === 0) {
-                  line.moveTo(currentVessel.records[j].xy[0], currentVessel.records[j].xy[1])
-                } else {
-                  line.lineTo(currentVessel.records[j + 1].xy[0], currentVessel.records[j + 1].xy[1])
-                }
-              }
-*/
+              /*
+                            // build line
+                            for (let j = 0; j < currentVessel.records.length - 1; j++) {
+                              if (j === 0) {
+                                line.moveTo(currentVessel.records[j].xy[0], currentVessel.records[j].xy[1])
+                              } else {
+                                line.lineTo(currentVessel.records[j + 1].xy[0], currentVessel.records[j + 1].xy[1])
+                              }
+                            }
+              */
 
               // create a new Sprite
               let vessel = PIXI.Sprite.fromImage('static/vessel.png')
@@ -999,10 +1000,7 @@
   }
 
   #geo-viz {
-    background-color: rgba(62, 140, 132, 0.7);
-    color: white;
     width: 500px;
-    border-radius: 5px;
     button > span, .el-dropdown-menu__item {
       font-family: $font-stack;
       font-size: 1.1em;
@@ -1015,13 +1013,29 @@
 
   #debug-info {
     position: absolute;
-    color: white;
     right: 0;
     user-select: none;
     margin: 1em 1.5em;
     padding: 1em;
-    background-color: rgba(82, 159, 191, 0.5);
+  }
+
+  .panel {
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: 5px 5px 10px rgba(255, 255, 255, 0.3);
     border-radius: 5px;
+  }
+
+  .sci-fi-heading {
+    text-shadow: 0 0 4px rgba(139, 235, 254, .75);
+    color: #8bebfe;
+  }
+
+  .sci-fi {
+    color: #26dafd;
+  }
+
+  .sci-fi-panel {
+
   }
 
   .el-dropdown-menu {
