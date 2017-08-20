@@ -93,6 +93,7 @@
       <div>Lat: {{info.currentView.split(',')[1]}}</div>
       <div>Scale: {{info.currentView.split(',')[2]}}</div>
       <div>Projection: {{info.currentProjection}}</div>
+      <div>DeBounce Delay: {{params.DEBOUNCE_WAIT}}ms</div>
       <div>Circile: {{info.currentCircle}}</div>
       <div>isVisible: {{info.pixiInfo.isVisible}}</div>
       <div>isRedrawing: {{info.pixiInfo.isRedrawing}}</div>
@@ -179,7 +180,7 @@
           }
         },
         params: {
-          DEBOUNCE_WAIT: 500,
+          DEBOUNCE_WAIT: 600,
           DEFAULT_SCALE: 450,
           MIN_MOVE: 4,
           MOVE_END_WAIT: 1000,
@@ -268,14 +269,18 @@
           }
         }
 
+        let triggerRedraw = _.debounce(()=> {
+          vueInstance.info.pixiInfo.isRedrawing = true
+        }, vueInstance.params.DEBOUNCE_WAIT)
+
         let op = null
         let zoom = d3.zoom()
           .on('start', () => {
             op = op || newOp(d3.mouse(displayDiv), d3.zoomTransform(displayDiv).k)  // a new operation begins
 
             // clean up canvas before rotate
-            document.getElementById('geoPathTest').getContext('2d').clearRect(0, 0, vueInstance.params.VIEW.width, vueInstance.params.VIEW.height)
-            document.getElementById('geoStreamTest').getContext('2d').clearRect(0, 0, vueInstance.params.VIEW.width, vueInstance.params.VIEW.height)
+            document.getElementById('geoPathTest').getContext('2d').clearRect(0, 0, this.params.VIEW.width, this.params.VIEW.height)
+            document.getElementById('geoStreamTest').getContext('2d').clearRect(0, 0, this.params.VIEW.width, this.params.VIEW.height)
             if (this.params.DEVMODE > 10) console.log('zoom started')
           })
           .on('zoom', () => {
@@ -321,7 +326,8 @@
             }
             else {
               // TODO: add a _.debounce here?
-              this.info.pixiInfo.isRedrawing = true
+           //   this.info.pixiInfo.isVisible = false
+              triggerRedraw()
             }
             op = null  // the drag/zoom/click operation is over
 
@@ -367,7 +373,7 @@
       },
       geoSimplifyTest: function () {
         let context = document.getElementById('geoSimplifyTest').getContext('2d')
-        context.clearRect(0, 0, vueInstance.params.VIEW.width, vueInstance.params.VIEW.height)
+        context.clearRect(0, 0, this.params.VIEW.width, this.params.VIEW.height)
         context.strokeStyle = 'rgba(245, 90, 92, 0.7)'
         context.lineWidth = 7
       },
