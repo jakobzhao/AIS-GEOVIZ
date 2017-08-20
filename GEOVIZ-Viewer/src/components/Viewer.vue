@@ -72,6 +72,7 @@
           <button @click="geoStreamTest()">Line Test</button>
           <button @click="updateVesselRecordTest()">UpdateData</button>
           <button @click="setCurrentCircle()">current Circle</button>
+          <button @click="geoSimplifyTest()">geo simplify test</button>
 
           <!--       <button @click="processData()">Prep Data</button>-->
           <button @click="loadData()" v-show="!info.pixiInfo.hasDrawn">draw vessel </button>
@@ -177,7 +178,7 @@
             currentBrowser: null,
             currentDevices: null,
             loadingText: 'Processing data...'
-          }
+          },
         },
         params: {
           DEBOUNCE_WAIT: 600,
@@ -216,6 +217,8 @@
             [-97.251, 29.103]
           ],
         },
+        sampleRaw: sampleRaw[0],
+        sampleSlim: sampleSlim[0],
         correctedStream: [],
       }
     },
@@ -269,7 +272,7 @@
           }
         }
 
-        let triggerRedraw = _.debounce(()=> {
+        let triggerRedraw = _.debounce(() => {
           vueInstance.info.pixiInfo.isRedrawing = true
         }, vueInstance.params.DEBOUNCE_WAIT)
 
@@ -326,7 +329,7 @@
             }
             else {
               // TODO: add a _.debounce here?
-           //   this.info.pixiInfo.isVisible = false
+              //   this.info.pixiInfo.isVisible = false
               triggerRedraw()
             }
             op = null  // the drag/zoom/click operation is over
@@ -371,11 +374,37 @@
         let svgGeoPath = vueInstance.path.context(null)
         if (vueInstance.params.DEVMODE > 10) console.info(svgGeoPath(vueInstance.testPath))
       },
+      rotateGlobe: function (lat, long, scale) {
+        let viewString = (lat + ',' + long + ',' + scale).toString()
+        this.globe.orientation(viewString, this.params.VIEW, this)
+        this.info.currentView = viewString
+      },
       geoSimplifyTest: function () {
+        // this commond still has a bug in zooming in
+        // this.rotateGlobe(3.98, 57.26, 3621)
         let context = document.getElementById('geoSimplifyTest').getContext('2d')
+        let geoPath = this.path.context(context)
+        let geoStreamPts = this.vesseLonglatToPixel(this.sampleSlim)
+        console.log(geoStreamPts)
         context.clearRect(0, 0, this.params.VIEW.width, this.params.VIEW.height)
         context.strokeStyle = 'rgba(245, 90, 92, 0.7)'
-        context.lineWidth = 7
+        context.lineWidth = 2
+        context.beginPath()
+        geoPath(this.sampleRaw.geoJSON)
+        context.stroke()
+
+        // slim path
+        context.strokeStyle = 'rgba(0, 0, 0, 0.8)'
+        context.beginPath()
+        geoPath(this.sampleSlim.geoJSON)
+        context.stroke()
+
+        // slim dots
+        context.fillStyle = 'rgba(255, 215, 0, 1)'
+        geoStreamPts.forEach(pts => {
+          context.fillRect(pts[0],pts[1],8,8)
+        })
+
       },
       updateVesselRecordTest: function () {
         let vueInstance = this
@@ -745,7 +774,6 @@
               vessel.mmsi = vueInstance.processedData[vesselNameList[i]].mmsi
               vessel.currentIndex = 0
               vessel.totalLength = vueInstance.processedData[vessel.mmsi].records.length
-
               if (vessel.totalLength > 1) {
                 vessel.next = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1]
                 let x2 = vessel.next.xy[0]
