@@ -50,6 +50,16 @@
             </el-switch>
           </el-tooltip>
 
+          <span>Canvas</span>
+          <el-tooltip placement="bottom">
+            <div slot="content">WebGL has better performance on big data</div>
+            <el-switch
+              v-model="info.pixiInfo.isCanvas"
+              on-color="#ff4949"
+              off-color="#13ce66">
+            </el-switch>
+          </el-tooltip>
+
 
           <span>Mask Animation</span>
           <el-switch
@@ -152,13 +162,15 @@
             isVisible: true,
             isRedrawing: false,
             isMasked: true,
+            isCanvas: true,
             hasDrawn: false,
             drawingStartTime: 0,
             drawingEndTime: 0,
             drawingCurrentTime: 0,
             drawingTimeStep: 360,
             drawingAlpha: 0.4,
-            drawingMaxLife: 300
+            drawingMaxLife: 300,
+            drawingLimit: 50000
           },
           dataProcessInfo: {
             isRemoveInvalidData: false,
@@ -714,15 +726,125 @@
         this.$message(`All data of ${this.info.dataProcessInfo.totalVessel} vessels processed in  ${processDuration} ms`)
         this.info.loadingInfo.isLoading = false
       },
+      pixiWormBox: function () {
+        let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1, forceCanvas: true})
+        document.getElementById('display').appendChild(app.view)
+        app.view.className += 'fill-screen'
+        let sprites = new PIXI.particles.ParticleContainer(10000, {
+          scale: true,
+          position: true,
+          rotation: true,
+          uvs: true,
+          alpha: true
+        })
+        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? 10000 : 100
+        app.stage.addChild(sprites)
+        let maggots
+
+        function buildSprites () {
+// create an array to store all the sprites
+          maggots = []
+          for (let i = 0; i < totalSprites; i++) {
+            // create a new Sprite
+            let dude = PIXI.Sprite.fromImage('static/maggot.png')
+            dude.alpha = 0.9
+            dude.tint = Math.random() * 0xE8D4CD
+            // set the anchor point so the texture is centerd on the sprite
+            dude.anchor.set(0.5)
+            // different maggots, different sizes
+            dude.scale.set(0.1 + Math.random() * 0.03)
+
+            // scatter them all
+            dude.x = Math.random() * app.renderer.width
+            dude.y = Math.random() * app.renderer.height
+
+            dude.tint = Math.random() * 0x808080
+
+            // create a random direction in radians
+            dude.direction = Math.random() * Math.PI * 2
+
+            // this number will be used to modify the direction of the sprite over time
+            dude.turningSpeed = Math.random() - 0.8
+
+            // create a random speed between 0 - 2, and these maggots are slooww
+            dude.speed = (2 + Math.random() * 2) * 0.2
+
+            dude.offset = Math.random() * 100
+
+            // finally we push the dude into the maggots array so it it can be easily accessed later
+            maggots.push(dude)
+            sprites.addChild(dude)
+          }
+        }
+
+        buildSprites()
+        // create a bounding box box for the little maggots
+        let dudeBoundsPadding = 100
+        let dudeBounds = new PIXI.Rectangle(
+          -dudeBoundsPadding,
+          -dudeBoundsPadding,
+          app.renderer.width + dudeBoundsPadding * 2,
+          app.renderer.height + dudeBoundsPadding * 2
+        )
+
+        app.ticker.add((delta) => {
+          this.stats.begin()
+          // increment the ticker
+          delta = Math.min(delta, 5)
+          // destroy old and create new
+          if (this.info.pixiInfo.isRedrawing) {
+            // destroy old and create new
+            while (sprites.children[0]) {
+              sprites.removeChild(sprites.children[0])
+            }
+            buildSprites()
+            this.info.pixiInfo.isRedrawing = false
+            this.info.pixiInfo.isVisible = true
+          }
+
+          // iterate through the sprites and update their position
+          if (this.info.pixiInfo.isVisible) {
+            sprites.visible = true
+            for (let i = 0; i < maggots.length; i++) {
+              let dude = maggots[i]
+              dude.scale.y = 0.95 + Math.sin(delta + dude.offset) * 0.05
+              dude.direction += dude.turningSpeed * 0.01
+              dude.x += Math.sin(dude.direction) * (dude.speed * dude.scale.y)
+              dude.y += Math.cos(dude.direction) * (dude.speed * dude.scale.y)
+              dude.rotation = -dude.direction + Math.PI
+
+              // wrap the maggots
+              if (dude.x < dudeBounds.x) {
+                dude.x += dudeBounds.width
+              }
+              else if (dude.x > dudeBounds.x + dudeBounds.width) {
+                dude.x -= dudeBounds.width
+              }
+
+              if (dude.y < dudeBounds.y) {
+                dude.y += dudeBounds.height
+              }
+              else if (dude.y > dudeBounds.y + dudeBounds.height) {
+                dude.y -= dudeBounds.height
+              }
+            }
+          } else {
+            sprites.visible = false
+          }
+          this.stats.end()
+        })
+        app.ticker.speed = 1
+        //requestAnimationFrame( this.pixiWormBox )
+      },
       drawData: function () {
         this.info.pixiInfo.isVisible = true
         this.info.pixiInfo.hasDrawn = true
         this.processData()
         let vueInstance = this
-        let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1})
+        let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: false, transparent: true, resolution: 1, forceCanvas: this.info.pixiInfo.isCanvas})
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
-        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? vueInstance.info.dataProcessInfo.totalVessel : Math.min(vueInstance.info.dataProcessInfo.totalVessel, 100)
+        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? Math.min(vueInstance.info.dataProcessInfo.totalVessel, 70000) : Math.min(vueInstance.info.dataProcessInfo.totalVessel, 30000)
         let vesselNameList = Object.keys(vueInstance.processedData)
         let sprites = new PIXI.particles.ParticleContainer(vueInstance.info.dataProcessInfo.totalVessel, {
           scale: true,
@@ -741,12 +863,16 @@
           vesselCollections = []
 
           // build mask
-          if (vueInstance.info.pixiInfo.isMasked && vueInstance.info.currentProjection === 'orthographic') {
+          if (
+            vueInstance.info.pixiInfo.isMasked &&
+            vueInstance.info.currentProjection === 'orthographic' &&
+            !vueInstance.info.pixiInfo.isCanvas) {
             vueInstance.setCurrentCircle()
             myMask.clear()
             // somehow regular filled circle doesn't do well as a mask, so we use arc + width
+            // and this hack won't work in canvas
             myMask.lineStyle(vueInstance.info.currentCircle[2] * 1.92, 0xffffff)
-            myMask.arc(vueInstance.info.currentCircle[0], vueInstance.info.currentCircle[1], 1, 0, Math.PI * 2)
+            myMask.arc(vueInstance.info.currentCircle[0], vueInstance.info.currentCircle[1], 1, 0, Math.PI * 3)
             app.stage.addChild(myMask)
             container.mask = myMask
           }
