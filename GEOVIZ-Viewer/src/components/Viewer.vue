@@ -844,7 +844,7 @@
         let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: false, transparent: true, resolution: 1, forceCanvas: this.info.pixiInfo.isCanvas})
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
-        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? Math.min(vueInstance.info.dataProcessInfo.totalVessel, 70000) : Math.min(vueInstance.info.dataProcessInfo.totalVessel, 30000)
+        let totalSprites = app.renderer instanceof PIXI.WebGLRenderer ? Math.min(vueInstance.info.dataProcessInfo.totalVessel, 70000) : Math.min(vueInstance.info.dataProcessInfo.totalVessel, 3000)
         let vesselNameList = Object.keys(vueInstance.processedData)
         let sprites = new PIXI.particles.ParticleContainer(vueInstance.info.dataProcessInfo.totalVessel, {
           scale: true,
@@ -864,6 +864,7 @@
 
           // build mask
           if (
+            // TODO: better mask, https://github.com/pixijs/pixi.js/wiki/v4-Tips%2C-Tricks%2C-and-Pitfalls
             vueInstance.info.pixiInfo.isMasked &&
             vueInstance.info.currentProjection === 'orthographic' &&
             !vueInstance.info.pixiInfo.isCanvas) {
@@ -897,9 +898,7 @@
               let vessel = PIXI.Sprite.fromImage('static/vessel.png')
               vessel.alpha = vueInstance.info.pixiInfo.drawingAlpha
               vessel.scale.set(1)
-              vessel.tint = Math.random() * 0xE8D4CD
 
-              // set the anchor point so the texture is centerd on the sprite
               // set the anchor point so the texture is centerd on the sprite
               vessel.anchor.set(0.5)
 
