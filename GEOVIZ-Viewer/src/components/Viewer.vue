@@ -169,7 +169,6 @@
             drawingCurrentTime: 0,
             drawingTimeStep: 360,
             drawingAlpha: 0.4,
-            drawingMaxLife: 300,
             drawingLimit: 50000
           },
           dataProcessInfo: {
@@ -634,18 +633,28 @@
             return []
           }
         } else {
-          if (geoStreamedPoint.length) {
+          // filter out vessel with less than 2 pts
+          if (geoStreamedPoint.length > 1) {
             let longlat = []
             let i = 0
             while (i < geoStreamedPoint.length) {
+              let isLastElement = i === (geoStreamedPoint.length) - 1
               let newLonglatItem = {
                 isAnchor: true,
                 timeStamp: geoStreamedPoint[i][2],
-                xy: [geoStreamedPoint[i][0], geoStreamedPoint[i][1]]
+                xy: [geoStreamedPoint[i][0], geoStreamedPoint[i][1]],
+                bearing: !isLastElement ? Math.atan2(
+                  geoStreamedPoint[i + 1][1] - geoStreamedPoint[i][1],
+                  geoStreamedPoint[i + 1][0] - geoStreamedPoint[i][0])
+                  : longlat[i - 1].bearing,
+                nextIndex: !isLastElement ? i + 1 : 0,
+                nextTimeStamp: !isLastElement ? geoStreamedPoint[i + 1][2] : geoStreamedPoint[0][2],
+                isLastElement: isLastElement
               }
               longlat.push(newLonglatItem)
               i++
             }
+
             this.info.dataProcessInfo.processProgress += 1 / this.info.dataProcessInfo.totalVessel
             if (this.params.DEVMODE > 50) {
               console.log(longlat)
@@ -865,9 +874,9 @@
           // build mask
           if (
             // TODO: better mask, https://github.com/pixijs/pixi.js/wiki/v4-Tips%2C-Tricks%2C-and-Pitfalls
-            vueInstance.info.pixiInfo.isMasked &&
-            vueInstance.info.currentProjection === 'orthographic' &&
-            !vueInstance.info.pixiInfo.isCanvas) {
+          vueInstance.info.pixiInfo.isMasked &&
+          vueInstance.info.currentProjection === 'orthographic' &&
+          !vueInstance.info.pixiInfo.isCanvas) {
             vueInstance.setCurrentCircle()
             myMask.clear()
             // somehow regular filled circle doesn't do well as a mask, so we use arc + width
@@ -905,21 +914,15 @@
               vessel.x = Math.round(currentVessel.records[0].xy[0])
               vessel.y = Math.round(currentVessel.records[0].xy[1])
               vessel.mmsi = currentVessel.mmsi
+              vessel.timeStamp = currentVessel.records[0].timeStamp
               vessel.currentIndex = 0
-              vessel.totalLength = currentVessel.records.length
-              if (vessel.totalLength > 1) {
-                vessel.next = currentVessel.records[vessel.currentIndex + 1]
-                let x2 = Math.round(vessel.next.xy[0])
-                let y2 = Math.round(vessel.next.xy[1])
-                vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x)
-              } else {
-                vessel.next = vessel
-              }
+              vessel.next = currentVessel.records[currentVessel.nextIndex]
+              vessel.nextTimeStamp = currentVessel.records[0].nextTimeStamp
+              vessel.rotation = currentVessel.records[0].bearing
+              vessel.isLastElement = currentVessel.records[0].isLastElement
 
-              // create a random speed between 0 - 2, and these vesselCollections are slooww
+              // TODO: get real speed for tweening
               vessel.speed = (2 + Math.random() * 2) * 0.2
-
-              vessel.offset = Math.random() * 100
 
               // finally we push the vessel into the vesselCollections array so it it can be easily accessed later
               vesselCollections.push(vessel)
@@ -956,40 +959,38 @@
             for (let i = 0; i < vesselCollections.length; i++) {
               let vessel = vesselCollections[i]
 
-              if (vessel.next !== vessel) {
-                if (vueInstance.info.pixiInfo.drawingCurrentTime >= vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1].timeStamp) {
+              if (!vessel.isLastElement) {
+                // TODO: refactor these if statements
+                if (vueInstance.info.pixiInfo.drawingCurrentTime >= vessel.nextTimeStamp) {
                   vessel.alpha = vueInstance.info.pixiInfo.drawingAlpha
                   vessel.currentIndex++
-                  vessel.x = Math.round(vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[0])
-                  vessel.y = Math.round(vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].xy[1])
-                  if (vessel.currentIndex < vessel.totalLength - 1) {
-                    vessel.next = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1]
-                    let x2 = Math.round(vessel.next.xy[0])
-                    let y2 = Math.round(vessel.next.xy[1])
-                    vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x)
-                  } else {
-                    // last pts
-                    vessel.next = vessel
-                  }
+                  let currentRecord = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex]
+                  vessel.x = Math.round(currentRecord.xy[0])
+                  vessel.y = Math.round(currentRecord.xy[1])
+                  vessel.timeStamp = currentRecord.timeStamp
+                  vessel.next = vueInstance.processedData[vessel.mmsi].records[currentRecord.nextIndex]
+                  vessel.nextTimeStamp = currentRecord.nextTimeStamp
+                  vessel.rotation = currentRecord.bearing
+                  vessel.isLastElement = currentRecord.isLastElement
                 }
               } else {
-                if (vueInstance.info.pixiInfo.drawingCurrentTime >= (vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex].timeStamp + vueInstance.info.pixiInfo.drawingMaxLife)) {
+                // last one
+                if (vueInstance.info.pixiInfo.drawingCurrentTime >= vessel.timeStamp) {
                   // sprite in particleContainer has no visibility setting
                   // https://github.com/pixijs/pixi.js/issues/1910
                   vessel.alpha = 0
-                  if (vueInstance.info.pixiInfo.drawingCurrentTime + vueInstance.info.pixiInfo.drawingTimeStep > vueInstance.info.pixiInfo.drawingEndTime) {
+
+                  if (vueInstance.info.pixiInfo.drawingCurrentTime + vueInstance.info.pixiInfo.drawingTimeStep >= vueInstance.info.pixiInfo.drawingEndTime) {
                     vessel.alpha = vueInstance.info.pixiInfo.drawingAlpha
                     vessel.currentIndex = 0
-                    vessel.x = Math.round(vueInstance.processedData[vessel.mmsi].records[0].xy[0])
-                    vessel.y = Math.round(vueInstance.processedData[vessel.mmsi].records[0].xy[1])
-                    if (vessel.totalLength > 1) {
-                      vessel.next = vueInstance.processedData[vessel.mmsi].records[vessel.currentIndex + 1]
-                      let x2 = Math.round(vessel.next.xy[0])
-                      let y2 = Math.round(vessel.next.xy[1])
-                      vessel.rotation = Math.atan2(y2 - vessel.y, x2 - vessel.x)
-                    } else {
-                      vessel.next = vessel
-                    }
+                    let currentRecord = vueInstance.processedData[vessel.mmsi].records[0]
+                    vessel.x = Math.round(currentRecord.xy[0])
+                    vessel.y = Math.round(currentRecord.xy[1])
+                    vessel.timeStamp = currentRecord.timeStamp
+                    vessel.next = vueInstance.processedData[vessel.mmsi].records[currentRecord.nextIndex]
+                    vessel.rotation = currentRecord.bearing
+                    vessel.nextTimeStamp = currentRecord.nextTimeStamp
+                    vessel.isLastElement = currentRecord.isLastElement
                   }
                 } else {
                   vessel.alpha = vueInstance.info.pixiInfo.drawingAlpha
