@@ -37,11 +37,11 @@ let singleDayQueryBuilder = function (startDate, endDate, digitArray) {
     'SELECT mmsi, report_time, longlat\n' +
     'FROM ais_record\n' +
  //   'WHERE mmsi = \'205180302\'' +
-    'WHERE mmsi = \'111219501\'' +
- //   'WHERE report_time >= ${startDate}\n' +
- //   'AND report_time <= ${endDate}\n' +
+ //   'WHERE mmsi = \'111219501\'' +
+    'WHERE report_time >= ${startDate}\n' +
+    'AND report_time <= ${endDate}\n' +
 //    'AND CAST(RIGHT(CAST(mmsi as VARCHAR), 1) as INT) IN (${queryMMSI_Digit^})\n' +
-    'ORDER BY mmsi, report_time\n' +
+//    'ORDER BY mmsi, report_time\n' +
  //   'LIMIT 200' +
     ';',
     queryInfo
@@ -69,10 +69,10 @@ function groupByMMSI (data) {
       }
     }
 
-    console.log(vessel.records.length)
+  //  console.log(vessel.records.length)
 
-   // vessel.records = simplifyPath(vessel)
-    console.log(vessel.records.length)
+    vessel.records = simplifyPath(vessel)
+  //  console.log(vessel.records.length)
     _.forEach(vessel.records, record => {
        vesselData.recordTime.push((new Date(record.report_time)).getTime() / 1e3)
       vesselData.geoJSON.coordinates.push([record.longlat.x, record.longlat.y])
@@ -81,7 +81,7 @@ function groupByMMSI (data) {
   }
 
   function simplifyPath (vessel) {
-    return geoSimplify(vessel.records, 10,  true)
+    return geoSimplify(vessel.records, 0.5,  true)
     //
   }
 
