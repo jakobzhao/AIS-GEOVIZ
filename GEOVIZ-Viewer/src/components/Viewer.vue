@@ -990,6 +990,15 @@
         container.filterArea = new PIXI.Rectangle(0, 0, this.params.VIEW.width, this.params.VIEW.height)
         let vesselCollections
         let myMask = new PIXI.Graphics()
+        let mySpriteSheetImage  = PIXI.BaseTexture.fromImage("static/vessel-sprite.png")
+        let spriteContainer = []
+        spriteContainer.push(new PIXI.Texture(mySpriteSheetImage, new PIXI.Rectangle(2, 0, 20, 10)))
+
+        spriteContainer.push(new PIXI.Texture(mySpriteSheetImage, new PIXI.Rectangle(24, 0, 20, 10)))
+
+        spriteContainer.push(new PIXI.Texture(mySpriteSheetImage, new PIXI.Rectangle(2, 12, 20, 10)))
+
+        spriteContainer.push(new PIXI.Texture(mySpriteSheetImage, new PIXI.Rectangle(24, 12, 20, 10)))
 
         function buildSprites () {
           vesselCollections = []
@@ -1027,7 +1036,7 @@
               */
 
               // create a new Sprite
-              let vessel = PIXI.Sprite.fromImage('static/vessel.png')
+              let vessel = new PIXI.Sprite(spriteContainer[Math.floor(Math.random() * spriteContainer.length)])
               vessel.alpha = vueInstance.info.pixiInfo.drawingAlpha
               vessel.scale.set(1)
 
