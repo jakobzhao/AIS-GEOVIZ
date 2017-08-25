@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 import Viewer from '@/components/Viewer'
+import About from '@/components/About'
 
 Vue.use(Router)
 
@@ -10,6 +11,11 @@ const routes = [
     path: '/',
     name: 'Viewer',
     component: Viewer
+  },
+  {
+    path: '/about',
+    name: 'About',
+    component: About
   },
   {
     path: '*',

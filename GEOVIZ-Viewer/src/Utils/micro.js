@@ -177,7 +177,7 @@ export function view () {
   let b = document && document.getElementsByTagName('body')[0]
   let x = w.innerWidth || d.clientWidth || b.clientWidth
   let y = w.innerHeight || d.clientHeight || b.clientHeight
-  return {width: x, height: y - 60}
+  return {width: x, height: y - 42}
 }
 
 /**

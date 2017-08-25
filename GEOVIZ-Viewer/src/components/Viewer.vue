@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div style="background: #021212;">
     <div
       id="display"
       v-loading.fullscreen.lock=info.loadingInfo.isLoading
@@ -64,6 +64,7 @@
               type="success"
               icon="circle-check"
               style="margin-left: 20px"
+              data-step="4" data-intro="Click here to start drawing"
               @click.native="redraw">Re-draw
             </el-button>
           </div>
@@ -1228,6 +1229,7 @@
       }
     },
     mounted: function () {
+      document.body.style.background = "#021212"
       this.browserTest()
       // enlarge charting dom to full screen
       d3.selectAll('.fill-screen').attr('width', this.params.VIEW.width).attr('height', this.params.VIEW.height)
@@ -1269,7 +1271,7 @@
 <style lang="scss" rel="stylesheet/scss">
   /*TODO: change to BEM style, next time...*/
   $font-stack: 'Ubuntu', Helvetica, Arial, sans-serif !important;
-  @import url('https://fonts.googleapis.com/css?family=Ubuntu:500');
+  @import url('https://fonts.googleapis.com/css?family=Ubuntu');
 
   #geo-viz-icon {
     position: absolute;
@@ -1322,7 +1324,7 @@
     user-select: none;
     margin: 1em 1.5em;
     padding: 1em;
-
+    background-color: rgba(0, 0, 0, 0.3);
     button {
       font-family: $font-stack;
       font-size: 1em;
@@ -1330,8 +1332,8 @@
   }
 
   .panel {
-    background: rgba(0, 56, 92, 0.9);
-    box-shadow: 5px 5px 15px rgba(255, 255, 255, 0.4);
+    background: rgba(32, 121, 156, 0.7);
+    box-shadow: 3px 3px 25px rgba(255, 255, 255, 0.4);
     border-radius: 5px;
   }
 
@@ -1407,4 +1409,5 @@
       padding: 0 1em;
     }
   }
+
 </style>
