@@ -34,6 +34,7 @@
             <span class="title">Data:</span>
             <el-dropdown
               trigger="click"
+              data-step="3" data-intro="Select Data File"
               @command="handleDataFileChange">
               <el-button type="primary">
                 {{dataFile[selectedDataFile]}}
@@ -54,6 +55,7 @@
               type="success"
               icon="circle-check"
               style="margin-left: 25px"
+              data-step="4" data-intro="Click here to start drawing"
               @click.native="draw">Draw
             </el-button>
 
@@ -71,7 +73,7 @@
             <el-dropdown
               trigger="click"
               @command="handleChangeProject"
-              data-step="3" data-intro="Change Projection Here"
+              data-step="5" data-intro="Change Projection Here"
             >
               <el-button type="primary">
                 {{info.currentProjection | startCase}}
@@ -96,6 +98,7 @@
               style="width: 150px"
               :min="60"
               :max="6000"
+              data-step="6" data-intro="Change Time Step which controls animation speed, need redraw"
               size="small"></el-input-number>
           </div>
           <!--          <span>Turbo Mode</span>
@@ -107,7 +110,9 @@
                         off-color="#13ce66">
                       </el-switch>
                     </el-tooltip>-->
-          <div id="render-mode-selector">
+          <div
+            id="render-mode-selector"
+            data-step="7" data-intro="Here you can change the render mode, WebGL can handle more visual elements, need redraw">
             <span class="switch-text">WebGL</span>
             <el-tooltip placement="top">
               <div slot="content">WebGL has better performance on big data</div>
@@ -145,7 +150,8 @@
             <el-progress
               :text-inside="true"
               :stroke-width="18"
-              :percentage="currentTimeProgress"></el-progress>
+              :percentage="currentTimeProgress"
+              data-step="8" data-intro="This progress bar shows current displaying time"></el-progress>
             <div style="text-align: center">
               Current Display Time: {{info.pixiInfo.drawingCurrentTime | showTime}}
             </div>
@@ -169,7 +175,9 @@
         <el-switch
           v-model="info.isShowingDebug"
           on-color="#FA7C7A"
-          off-color="#45B9BA">
+          off-color="#45B9BA"
+          data-step="9" data-intro="Switch to display debugging information"
+        >
         </el-switch>
       </div>
 
