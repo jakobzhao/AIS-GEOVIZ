@@ -1,6 +1,10 @@
 <template>
   <div>
-    <div id="display" v-loading.fullscreen.lock=info.loadingInfo.isLoading :element-loading-text=info.loadingInfo.loadingText>
+    <div
+      id="display"
+      v-loading.fullscreen.lock=info.loadingInfo.isLoading
+      :element-loading-text=info.loadingInfo.loadingText
+    >
       <svg class="fill-screen" id="crosshair-background"></svg>
       <canvas id="map" class="fill-screen" xmlns="http://www.w3.org/2000/svg" version="1.1"></canvas>
       <canvas id="animation" class="fill-screen"></canvas>
@@ -9,79 +13,142 @@
       <canvas id="geoPathTest" class="fill-screen"></canvas>
       <canvas id="geoSimplifyTest" class="fill-screen"></canvas>
     </div>
-
-    <div id="geo-viz-icon">
+    <div
+      id="geo-viz-icon">
+      <img
+        src="../assets/geoviz-logo.png"
+        v-if="!info.isShowingGEOVIZ"
+        class="small-logo"
+        @click="info.isShowingGEOVIZ = !info.isShowingGEOVIZ"
+        data-step="2" data-intro="Click logo to trigger Map Option menu">
       <img
         src="../assets/geoviz-logo-w-text.png"
-        :class="info.isShowingGEOVIZ ? 'small-logo' : 'big-logo'"
-        @click="info.isShowingGEOVIZ = !info.isShowingGEOVIZ">
+        v-if="info.isShowingGEOVIZ"
+        class="big-logo"
+        @click="info.isShowingGEOVIZ = !info.isShowingGEOVIZ"
+        data-step="2" data-intro="Click logo to trigger Map Option menu">
       <div id="geo-viz" v-show="info.isShowingGEOVIZ" class="panel">
         <div class="geo-viz-content">
-          <el-dropdown style="padding-left: 200px"
-                       trigger="click"
-                       @command="handleChangeProject">
-            <el-button type="primary">
-              {{info.currentProjection | startCase}}
-              <i class="el-icon-caret-bottom el-icon--right"></i>
+
+          <div id="data-file-selector">
+            <span class="title">Data:</span>
+            <el-dropdown
+              trigger="click"
+              @command="handleDataFileChange">
+              <el-button type="primary">
+                {{dataFile[selectedDataFile]}}
+                <i class="el-icon-caret-bottom el-icon--right"></i>
+              </el-button>
+              <el-dropdown-menu slot="dropdown">
+                <el-dropdown-item
+                  v-for="dataFileName in Object.keys(dataFile)"
+                  :key="dataFileName"
+                  :command="dataFileName"
+                  :disabled="dataFileName === selectedDataFile">
+                  {{dataFile[dataFileName]}}
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </el-dropdown>
+            <el-button
+              v-if="!info.pixiInfo.hasDrawn"
+              type="success"
+              icon="circle-check"
+              style="margin-left: 25px"
+              @click.native="draw">Draw
             </el-button>
-            <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item
-                v-for="projection in params.PROJECTION_LIST"
-                :key="projection"
-                :command="projection"
-                :disabled="info.currentProjection === projection">
-                {{projection | startCase}}
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </el-dropdown>
-          <span>Time step</span>
-          <el-input-number
-            v-model="info.pixiInfo.drawingTimeStep"
-            style="width: 200px"
-            :min="60"
-            :max="6000"></el-input-number>
-          <span>Turbo Mode</span>
-          <el-tooltip placement="bottom">
-            <div slot="content">Much faster but might create artifacts</div>
-            <el-switch
-              v-model="info.dataProcessInfo.isOnTurboMode"
-              on-color="#ff4949"
-              off-color="#13ce66">
-            </el-switch>
-          </el-tooltip>
 
-          <span>Canvas</span>
-          <el-tooltip placement="bottom">
-            <div slot="content">WebGL has better performance on big data</div>
-            <el-switch
-              v-model="info.pixiInfo.isCanvas"
-              on-color="#ff4949"
-              off-color="#13ce66">
-            </el-switch>
-          </el-tooltip>
+            <el-button
+              v-if="info.pixiInfo.hasDrawn"
+              type="success"
+              icon="circle-check"
+              style="margin-left: 20px"
+              @click.native="redraw">Re-draw
+            </el-button>
+          </div>
 
+          <div id="projection-selector">
+            <span class="title">Projections:</span>
+            <el-dropdown
+              trigger="click"
+              @command="handleChangeProject"
+              data-step="3" data-intro="Change Projection Here"
+            >
+              <el-button type="primary">
+                {{info.currentProjection | startCase}}
+                <i class="el-icon-caret-bottom el-icon--right"></i>
+              </el-button>
+              <el-dropdown-menu slot="dropdown">
+                <el-dropdown-item
+                  v-for="projection in params.PROJECTION_LIST"
+                  :key="projection"
+                  :command="projection"
+                  :disabled="info.currentProjection === projection">
+                  {{projection | startCase}}
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </el-dropdown>
+          </div>
 
-          <span>Mask Animation</span>
-          <el-switch
-            v-model="info.pixiInfo.isMasked"
-            on-color="#107A92"
-            off-color="#6BA7BF">
-          </el-switch>
+          <div id="time-step-changer">
+            <span class="title">Time step:</span>
+            <el-input-number
+              v-model="info.pixiInfo.drawingTimeStep"
+              style="width: 150px"
+              :min="60"
+              :max="6000"
+              size="small"></el-input-number>
+          </div>
+          <!--          <span>Turbo Mode</span>
+                    <el-tooltip placement="bottom">
+                      <div slot="content">Much faster but might create artifacts</div>
+                      <el-switch
+                        v-model="info.dataProcessInfo.isOnTurboMode"
+                        on-color="#ff4949"
+                        off-color="#13ce66">
+                      </el-switch>
+                    </el-tooltip>-->
+          <div id="render-mode-selector">
+            <span class="switch-text">WebGL</span>
+            <el-tooltip placement="top">
+              <div slot="content">WebGL has better performance on big data</div>
+              <el-switch
+                v-model="info.pixiInfo.isCanvas"
+                on-color="#ff4949"
+                off-color="#13ce66"
+                on-text=""
+                off-text="">
+              </el-switch>
+            </el-tooltip>
+            <span class="switch-text">Canvas</span>
+          </div>
 
-          <button @click="geoStreamTest()">Line Test</button>
-          <button @click="updateVesselRecordTest()">UpdateData</button>
-          <button @click="setCurrentCircle()">current Circle</button>
-          <button @click="geoSimplifyTest()">geo simplify test</button>
+          <!--
 
-          <!--       <button @click="processData()">Prep Data</button>-->
-          <button @click="loadData()" v-show="!info.pixiInfo.hasDrawn">draw vessel </button>
+                    <span>Mask Animation</span>
+                    <el-switch
+                      v-model="info.pixiInfo.isMasked"
+                      on-color="#107A92"
+                      off-color="#6BA7BF">
+                    </el-switch>
+          -->
+
+          <div style="display: flex; justify-content: flex-start; width: 100%;">
+            <el-button  type="info" @click="geoStreamTest()">Line Test</el-button>
+            <!--          <button @click="updateVesselRecordTest()">UpdateData</button>-->
+            <!--          <button @click="setCurrentCircle()">current Circle</button>-->
+            <el-button  type="info" @click="geoSimplifyTest()">Geo-simplify Test</el-button>
+
+            <!--       <button @click="processData()">Prep Data</button>-->
+          </div>
+
           <div>
             <el-progress
               :text-inside="true"
               :stroke-width="18"
-              :percentage="currentTimeProgress"
-              style="width: 400px"></el-progress>
-            <div>currentTime: {{info.pixiInfo.drawingCurrentTime | showTime}}</div>
+              :percentage="currentTimeProgress"></el-progress>
+            <div style="text-align: center">
+              Current Display Time: {{info.pixiInfo.drawingCurrentTime | showTime}}
+            </div>
           </div>
         </div>
       </div>
@@ -90,6 +157,14 @@
 
     <div id="debug-info">
       <div class="sci-fi-heading">
+        <el-button
+          type="info"
+          size="small"
+          @click.native="showTutorial"
+          data-step="1" data-intro="You can view this guide again here. "
+        >Show Guide
+        </el-button>
+        <br>
         <span style="font-size: 1.2em">Debug Info</span>
         <el-switch
           v-model="info.isShowingDebug"
@@ -97,6 +172,7 @@
           off-color="#45B9BA">
         </el-switch>
       </div>
+
       <div id="debug-info-content" v-if="info.isShowingDebug" class=" sci-fi">
         <div>Long: {{info.currentView.split(',')[0]}}</div>
         <div>Lat: {{info.currentView.split(',')[1]}}</div>
@@ -125,6 +201,17 @@
       </p>
     </el-dialog>
 
+    <el-dialog title="Welcome to GEOVIZ - AIS Vessel Visualization" v-model="info.loadingInfo.isNewUser" size="tiny" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
+      <p>
+        Welcome to GEOVIZ AIS Vessel Visualization. It appears it's the first time you visit this site. Would you want to go through a quick step-by-step guide?
+      </p>
+      <small>You can still view guide by click the 'Show Guide' button </small>
+      <p slot="footer" class="dialog-footer">
+        <el-button @click="info.loadingInfo.isNewUser = false">No</el-button>
+        <el-button type="primary" @click="showTutorial">Yes</el-button>
+      </p>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -145,9 +232,15 @@
   import * as globes from '../Utils/globes'
   import earthTopoSimple from '../data/world-110m.json'
   import sampleRaw from '../data/sample-raw.json'
-  import sampleSlim from '../data/sample-slim.json'
+  import sampleOneKM from '../data/sample-1km.json'
+  import sampleTenKM from '../data/sample-10km.json'
+  import introJs from 'intro.js'
+  import 'intro.js/minified/introjs.min.css'
+  import Cookies from 'js-cookie'
+  import ElButton from '../../node_modules/element-ui/packages/button/src/button.vue'
 
   export default {
+    components: {ElButton},
     name: 'Viewer',
     data () {
       return {
@@ -162,7 +255,7 @@
             isVisible: true,
             isRedrawing: false,
             isMasked: true,
-            isCanvas: true,
+            isCanvas: false,
             hasDrawn: false,
             drawingStartTime: 0,
             drawingEndTime: 0,
@@ -184,6 +277,7 @@
           },
           loadingInfo: {
             isBrowserTestDVisible: false,
+            isNewUser: false,
             isLoading: false,
             currentBrowser: null,
             currentDevices: null,
@@ -228,8 +322,17 @@
           ],
         },
         sampleRaw: sampleRaw[0],
-        sampleSlim: sampleSlim[0],
+        sampleOneKM: sampleOneKM[0],
+        sampleTenKM: sampleTenKM[0],
         correctedStream: [],
+        dataFile: {
+          raw: 'Raw - 86.2MB',
+          rawFiveHM: '500M  - 20.0MB',
+          rawOneKM: '1KM  - 17.0MB',
+          rawTenKM: '10KM - 10.3MB',
+          regular: 'MMSI[1,2] - 6.28MB'
+        },
+        selectedDataFile: 'regular'
       }
     },
     computed: {
@@ -244,7 +347,7 @@
       addStatsMeter: function () {
         this.stats = new Stats()
         this.stats.domElement.style.position = 'absolute'
-        this.stats.domElement.style.top = '60px'
+        this.stats.domElement.style.top = '42px'
         this.stats.domElement.id = 'statsMeter'
         document.body.appendChild(this.stats.domElement)
       },
@@ -292,6 +395,7 @@
             // clean up canvas before rotate
             document.getElementById('geoPathTest').getContext('2d').clearRect(0, 0, this.params.VIEW.width, this.params.VIEW.height)
             document.getElementById('geoStreamTest').getContext('2d').clearRect(0, 0, this.params.VIEW.width, this.params.VIEW.height)
+            document.getElementById('geoSimplifyTest').getContext('2d').clearRect(0, 0, this.params.VIEW.width, this.params.VIEW.height)
             if (this.params.DEVMODE > 10) console.log('zoom started')
           })
           .on('zoom', () => {
@@ -392,7 +496,8 @@
         // this.rotateGlobe(3.98, 57.26, 3621)
         let context = document.getElementById('geoSimplifyTest').getContext('2d')
         let geoPath = this.path.context(context)
-        let geoStreamPts = this.vesseLonglatToPixel(this.sampleSlim)
+        let geoStream1KMPts = this.vesseLonglatToPixel(this.sampleOneKM)
+        let geoStream10KMPts = this.vesseLonglatToPixel(this.sampleTenKM)
         context.clearRect(0, 0, this.params.VIEW.width, this.params.VIEW.height)
         context.strokeStyle = 'rgba(245, 90, 92, 0.7)'
         context.lineWidth = 2
@@ -400,15 +505,21 @@
         geoPath(this.sampleRaw.geoJSON)
         context.stroke()
 
-        // slim path
-        context.strokeStyle = 'rgba(0, 0, 0, 0.8)'
+        // slim 1KM path
+        context.strokeStyle = 'rgba(0, 0, 0, 0.7)'
         context.beginPath()
-        geoPath(this.sampleSlim.geoJSON)
+        geoPath(this.sampleOneKM.geoJSON)
         context.stroke()
 
-        // slim dots
-        context.fillStyle = 'rgba(255, 215, 0, 1)'
-        geoStreamPts.forEach(pts => {
+        // slim 1KM dots
+        context.fillStyle = 'rgba(255, 215, 0, 0.8)'
+        geoStream1KMPts.forEach(pts => {
+          context.fillRect(pts[0], pts[1], 8, 8)
+        })
+
+        // slim 10KM dots
+        context.fillStyle = 'rgba(255, 0, 0, 1)'
+        geoStream10KMPts.forEach(pts => {
           context.fillRect(pts[0], pts[1], 8, 8)
         })
 
@@ -437,6 +548,9 @@
       handleChangeProject: function (command) {
         // http://element.eleme.io/#/en-US/component/dropdown
         this.changeProjection(command)
+      },
+      handleDataFileChange: function (command) {
+        this.selectedDataFile = command
       },
       changeProjection: function (newProjection) {
         if (newProjection !== this.info.currentProjection) {
@@ -702,7 +816,7 @@
           .catch(console.error) // logs any possible error
       },
       processData: function () {
-        this.info.loadingInfo.isLoading = true
+        this.$forceUpdate()
         let startTime = window.performance.now()
         this.info.dataProcessInfo.invisibleVessel = 0
         this.info.dataProcessInfo.totalVessel = this.rawData.length
@@ -736,7 +850,7 @@
         this.info.loadingInfo.isLoading = false
       },
       pixiWormBox: function () {
-        let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1, forceCanvas: true})
+        let app = new PIXI.Application(this.params.VIEW.width, this.params.VIEW.height, {antialias: true, transparent: true, resolution: 1, forceCanvas: this.info.pixiInfo.isCanvas})
         document.getElementById('display').appendChild(app.view)
         app.view.className += 'fill-screen'
         let sprites = new PIXI.particles.ParticleContainer(10000, {
@@ -947,7 +1061,10 @@
               sprites.removeChild(sprites.children[0])
             }
             vesselCollections = []
+            this.info.loadingInfo.isLoading = true
+            this.info.loadingInfo.loadingText = 'Processing Data...'
             vueInstance.processData()
+            vesselNameList = Object.keys(vueInstance.processedData)
             buildSprites()
             this.info.pixiInfo.isRedrawing = false
             this.info.pixiInfo.isVisible = true
@@ -1011,19 +1128,22 @@
       loadData: function () {
         this.info.loadingInfo.isLoading = true
         this.info.loadingInfo.loadingText = 'Downloading Data...'
-        axios.get('./static/records.json')
-          .then(response => {
-            console.log(response.status)
-            if (response.data) {
-              // https://github.com/vuejs/vue/issues/4384
-              // freeze data so no getter setter are added, significantly reduce memory usage (500MB), no need to do recursive freeze
-              // test it with this.rawData.__ob__
-              this.rawData = Object.freeze(response.data)
-              //  this.rawData = response.data)
-              this.info.loadingInfo.isLoading = false
-              this.drawData()
-            }
-          })
+        let fileName = this.selectedDataFile.toString()
+        return new Promise((resolve, reject) => {
+          axios.get('./static/' + fileName + '.json')
+            .then(response => {
+              console.log(response.status)
+              if (response.data) {
+                // https://github.com/vuejs/vue/issues/4384
+                // freeze data so no getter setter are added, significantly reduce memory usage (500MB), no need to do recursive freeze
+                // test it with this.rawData.__ob__
+                this.rawData = Object.freeze(response.data)
+                //  this.rawData = response.data)
+                this.info.loadingInfo.isLoading = false
+                resolve()
+              }
+            })
+        })
       },
       browserTest: function () {
         if (!bowser.chrome) {
@@ -1056,6 +1176,47 @@
         let center = [currentViewArray[0], currentViewArray[1]]
         let distance = d3.geoDistance(center, longlatArray) * this.params.KMPERRAD
         return (distance > (this.params.EARTHRADIUS * 0.9))
+      },
+      showTutorial: function () {
+        let vueInstance = this
+        this.info.loadingInfo.isNewUser = false
+        introJs.introJs().onchange(function (targetElement) {
+          console.log(this._currentStep)
+          switch (this._currentStep) {
+            case 0:
+              vueInstance.info.isShowingGEOVIZ = true
+              break
+            case 1:
+
+              break
+          }
+        }).start()
+      },
+      checkNewUser: function () {
+        if (Cookies.get('visited') === undefined) {
+          // new user
+          this.info.loadingInfo.isNewUser = true
+        }
+        Cookies.set('visited', true)
+      },
+      draw: function () {
+        this.loadData()
+          .then(() => {
+            this.info.loadingInfo.isLoading = true
+            this.info.loadingInfo.loadingText = 'Processing Data...'
+            this.drawData()
+          })
+
+      },
+      redraw: function () {
+        this.loadData()
+          .then(() => {
+            this.info.loadingInfo.isLoading = true
+            this.info.loadingInfo.loadingText = 'Processing Data...'
+            this.processData()
+            this.info.pixiInfo.isRedrawing = true
+          })
+
       }
     },
     mounted: function () {
@@ -1082,6 +1243,8 @@
 
       // have to move here as this.globe.orientation() seems to create a race condition and initScale will get a 0 if executed immediately after this.globe.orientation()
       this.info.initScale = (this.info.currentView.split(','))[2]
+      this.checkNewUser()
+
     },
     filters: {
       startCase: function (value) {
@@ -1120,9 +1283,8 @@
   }
 
   .small-logo {
-    width: 350px;
+    width: 150px;
     height: auto;
-    font-size: 1.5em;
   }
 
   #geo-viz {
@@ -1134,6 +1296,15 @@
     }
     .geo-viz-content {
       padding: 1em;
+      & > div {
+        padding: 0.5em 0;
+      }
+      span.title {
+        font-size: 1.2em;
+        // TODO： change to flex mode
+        float: left;
+        min-width: 6em;
+      }
     }
   }
 
@@ -1143,11 +1314,16 @@
     user-select: none;
     margin: 1em 1.5em;
     padding: 1em;
+
+    button {
+      font-family: $font-stack;
+      font-size: 1em;
+    }
   }
 
   .panel {
-    background: rgba(255, 255, 255, 0.7);
-    box-shadow: 5px 5px 10px rgba(255, 255, 255, 0.3);
+    background: rgba(0, 56, 92, 0.9);
+    box-shadow: 5px 5px 15px rgba(255, 255, 255, 0.4);
     border-radius: 5px;
   }
 
@@ -1168,6 +1344,9 @@
     background-color: dodgerblue;
     border-color: dodgerblue;
     border-radius: 8px;
+    .el-dropdown-menu__item {
+      font-family: $font-stack;
+    }
   }
 
   #crosshair-background {
@@ -1178,7 +1357,7 @@
 
   .fill-screen {
     position: absolute;
-    top: 60px;
+    top: 42px;
     left: 0;
     /*  will-change: transform;*/
   }
@@ -1195,5 +1374,29 @@
   body > div.el-loading-mask.is-fullscreen > div > svg {
     width: 100px !important;
     height: 100px !important;
+  }
+
+  .introjs-tooltiptext {
+    color: black;
+  }
+
+  .introjs-helperLayer {
+    position: absolute !important;
+  }
+
+  .disable-click {
+    pointer-events: none;
+  }
+
+  #render-mode-selector {
+    display: flex;
+    width: 40%;
+    justify-content: space-between;
+    .switch-text {
+      font-size: 1.2em;
+    }
+    .el-switch__label {
+      padding: 0 1em;
+    }
   }
 </style>
