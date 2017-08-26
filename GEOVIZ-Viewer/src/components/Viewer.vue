@@ -114,16 +114,18 @@
           <div
             id="render-mode-selector"
             data-step="7" data-intro="Here you can change the render mode, WebGL can handle more visual elements, need redraw">
-            <span class="title">Use WebGL</span>
+            <span class="title">Use WebGL:</span>
             <el-tooltip placement="top">
               <div slot="content">WebGL has better performance on big data</div>
-              <el-switch
-                v-model="info.pixiInfo.isCanvas"
-                on-color="#ff4949"
-                off-color="#13ce66"
-                on-text="yes"
-                off-text="no">
-              </el-switch>
+              <div style="padding-top: 6px">
+                <el-switch
+                  v-model="info.pixiInfo.isCanvas"
+                  on-color="#ff4949"
+                  off-color="#13ce66"
+                  on-text="yes"
+                  off-text="no">
+                </el-switch>
+              </div>
             </el-tooltip>
           </div>
 
@@ -1323,10 +1325,13 @@
     user-select: none;
     margin: 1em 1.5em;
     padding: 1em;
-    background-color: rgba(0, 0, 0, 0.3);
     button {
       font-family: $font-stack;
       font-size: 1em;
+    }
+
+    #debug-info-content {
+      background-color: rgba(0, 0, 0, 0.3);
     }
   }
 
