@@ -114,18 +114,17 @@
           <div
             id="render-mode-selector"
             data-step="7" data-intro="Here you can change the render mode, WebGL can handle more visual elements, need redraw">
-            <span class="switch-text">WebGL</span>
+            <span class="title">Use WebGL</span>
             <el-tooltip placement="top">
               <div slot="content">WebGL has better performance on big data</div>
               <el-switch
                 v-model="info.pixiInfo.isCanvas"
                 on-color="#ff4949"
                 off-color="#13ce66"
-                on-text=""
-                off-text="">
+                on-text="yes"
+                off-text="no">
               </el-switch>
             </el-tooltip>
-            <span class="switch-text">Canvas</span>
           </div>
 
           <!--
@@ -139,6 +138,7 @@
           -->
 
           <div style="display: flex; justify-content: flex-start; width: 100%;">
+            <span class="title">Extra:</span>
             <el-button  type="info" @click="geoStreamTest()">Line Test</el-button>
             <!--          <button @click="updateVesselRecordTest()">UpdateData</button>-->
             <!--          <button @click="setCurrentCircle()">current Circle</button>-->
@@ -1312,6 +1312,7 @@
         // TODO： change to flex mode
         float: left;
         min-width: 6em;
+        line-height: 37px;
       }
     }
   }
@@ -1393,15 +1394,9 @@
   }
 
   #render-mode-selector {
-    display: flex;
     width: 40%;
     justify-content: space-between;
-    .switch-text {
-      font-size: 1.2em;
-    }
-    .el-switch__label {
-      padding: 0 1em;
-    }
+
   }
 
 </style>
