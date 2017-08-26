@@ -173,7 +173,7 @@
         </el-button>
       </div>
 
-      <div id="debug-info-content" v-if="info.isShowingDebug" class=" sci-fi">
+      <div id="debug-info-content" v-show="info.isShowingDebug" class=" sci-fi">
         <div>Long: {{info.currentView.split(',')[0]}}</div>
         <div>Lat: {{info.currentView.split(',')[1]}}</div>
         <div>Scale: {{info.currentView.split(',')[2]}}</div>
@@ -188,6 +188,7 @@
         <div>Last Process Time : {{info.dataProcessInfo.lastProcessDuration}}ms</div>
         <div>isLoading: {{info.loadingInfo.isLoading}}</div>
         <div>currentTime: {{info.pixiInfo.drawingCurrentTime}}</div>
+        <div id="fps-meter"></div>
       </div>
     </div>
 
@@ -346,10 +347,10 @@
     methods: {
       addStatsMeter: function () {
         this.stats = new Stats()
-        this.stats.domElement.style.position = 'absolute'
-        this.stats.domElement.style.top = '42px'
+        this.stats.domElement.style.position = 'relative'
         this.stats.domElement.id = 'statsMeter'
-        document.body.appendChild(this.stats.domElement)
+        let meterDOM = document.getElementById('fps-meter')
+        meterDOM.appendChild(this.stats.domElement)
       },
       toggleDrawing: function () {
         this.info.pixiInfo.isVisible = !this.info.pixiInfo.isVisible
