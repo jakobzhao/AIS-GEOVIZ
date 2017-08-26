@@ -154,7 +154,7 @@
               :percentage="currentTimeProgress"
               data-step="8" data-intro="This progress bar shows current displaying time"></el-progress>
             <div style="text-align: center">
-              Current Display Time: {{info.pixiInfo.drawingCurrentTime | showTime}}
+              Current Display <span @click="info.isShowingDebug = !info.isShowingDebug">Time</span>: {{info.pixiInfo.drawingCurrentTime | showTime}}
             </div>
           </div>
         </div>
@@ -171,15 +171,6 @@
           data-step="1" data-intro="You can view this guide again here. "
         >Show Guide
         </el-button>
-        <br>
-        <span style="font-size: 1.2em">Debug Info</span>
-        <el-switch
-          v-model="info.isShowingDebug"
-          on-color="#FA7C7A"
-          off-color="#45B9BA"
-          data-step="9" data-intro="Switch to display debugging information"
-        >
-        </el-switch>
       </div>
 
       <div id="debug-info-content" v-if="info.isShowingDebug" class=" sci-fi">
@@ -258,7 +249,7 @@
           currentView: '-170, 15, null',
           currentCircle: null,
           initScale: 0,
-          isShowingDebug: true,
+          isShowingDebug: false,
           isShowingGEOVIZ: false,
           pixiInfo: {
             isVisible: true,
@@ -1199,13 +1190,10 @@
         let vueInstance = this
         this.info.loadingInfo.isNewUser = false
         introJs.introJs().onchange(function (targetElement) {
-          console.log(this._currentStep)
+         // console.log(this._currentStep)
           switch (this._currentStep) {
             case 0:
               vueInstance.info.isShowingGEOVIZ = true
-              break
-            case 1:
-
               break
           }
         }).start()
@@ -1296,13 +1284,13 @@
   }
 
   .big-logo {
-    width: 400px;
+    width: 300px;
     height: auto;
     font-size: 2em;
   }
 
   .small-logo {
-    width: 150px;
+    width: 100px;
     height: auto;
   }
 
@@ -1397,10 +1385,6 @@
 
   .introjs-tooltiptext {
     color: black;
-  }
-
-  .introjs-helperLayer {
-    position: absolute !important;
   }
 
   .disable-click {
